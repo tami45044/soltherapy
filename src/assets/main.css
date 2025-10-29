@@ -1,0 +1,34 @@
+@import './base.css';
+
+#app {
+  font-weight: normal;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Global Button Enhancements */
+.v-btn {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-weight: 600;
+}
+
+.v-btn:not(.v-btn--icon) {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.v-btn:not(.v-btn--icon):hover {
+  transform: translateY(-2px);
+}
+
+/* Card Enhancements */
+.v-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

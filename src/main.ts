@@ -16,7 +16,6 @@ import router from './router'
 const vuetify = createVuetify({
   components,
   directives,
-  rtl: true,
   theme: {
     defaultTheme: 'light',
     themes: {

@@ -29,6 +29,11 @@ const router = createRouter({
       name: 'contact',
       component: () => import('../views/ContactView.vue'),
     },
+    {
+      path: '/manage',
+      name: 'manage',
+      component: () => import('../views/ManageView.vue'),
+    },
   ],
   scrollBehavior() {
     return { top: 0 }

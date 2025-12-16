@@ -13,6 +13,14 @@ export interface Client {
 // Payment Types
 export type PaymentMethod = 'cash' | 'transfer' | 'credit' | 'check'
 
+export interface PaymentRecord {
+  id: string
+  amount: number
+  method: PaymentMethod
+  date: Date
+  notes?: string
+}
+
 export interface Payment {
   id: string
   clientId: string
@@ -33,8 +41,7 @@ export interface Appointment {
   price: number
   attended: boolean
   paid: boolean
-  paymentAmount?: number
-  paymentMethod?: PaymentMethod
+  payments: PaymentRecord[] // מערך תשלומים
   sessionNumber: number // מספר הפגישה של הלקוח
   notes?: string
 }

@@ -652,6 +652,24 @@ function isSameDay(date1: Date, date2: Date): boolean {
   return d1.getTime() === d2.getTime()
 }
 
+// פונקציה ליצירת תאריך מקומי מ-date input string (YYYY-MM-DD)
+function createLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number)
+  // month-1 כי חודשים מתחילים מ-0
+  const date = new Date(year, month - 1, day)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+// פונקציה להמרת תאריך ל-string בפורמט YYYY-MM-DD (timezone מקומי!)
+function dateToInputString(date: Date): string {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Methods
 const loadClients = async () => {
   try {
@@ -856,9 +874,10 @@ const openAppointmentDialog = (date: Date, time: string) => {
 
   if (existing) {
     selectedAppointment.value = existing
+    const aptDate = existing.date instanceof Date ? existing.date : new Date(existing.date)
     appointmentForm.value = {
       clientId: existing.clientId,
-      date: date.toISOString().split('T')[0],
+      date: dateToInputString(aptDate),
       time: existing.time,
       price: existing.price,
       attended: existing.attended,
@@ -871,7 +890,7 @@ const openAppointmentDialog = (date: Date, time: string) => {
     selectedAppointment.value = null
     appointmentForm.value = {
       clientId: '',
-      date: date.toISOString().split('T')[0],
+      date: dateToInputString(date),
       time: time,
       price: 400,
       attended: false,
@@ -911,8 +930,8 @@ const saveAppointment = async () => {
     const client = clients.value.find(c => c.id === appointmentForm.value.clientId)
     if (!client) return
 
-    const appointmentDate = new Date(appointmentForm.value.date)
-    appointmentDate.setHours(0, 0, 0, 0)
+    // יצירת תאריך מקומי נכון (לא UTC!)
+    const appointmentDate = createLocalDate(appointmentForm.value.date)
 
     const appointmentData = {
       clientId: appointmentForm.value.clientId,

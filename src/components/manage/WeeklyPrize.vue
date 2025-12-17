@@ -10,125 +10,8 @@
       </v-col>
     </v-row>
 
-    <!-- הודעה למשתמש רגיל - עדיין לא זמן לפתוח -->
-    <v-row v-if="!isAdmin && !isUnlockable && !currentPrize.isUnlocked" class="mb-6">
-      <v-col cols="12" md="8" class="mx-auto">
-        <v-card rounded="xl" elevation="4" class="text-center pa-10">
-          <v-icon icon="mdi-gift-outline" size="120" color="grey-lighten-1" class="mb-6" />
-          <h3 class="text-h4 mb-4">🎁 פרס שבועי מחכה לך!</h3>
-          <p class="text-h6 mb-6 text-medium-emphasis">
-            עמוד ביעד השבועי והמתנה תהיה זמינה לפתיחה במוצאי שבת
-          </p>
-          <v-divider class="my-6" />
-          <div class="text-body-1 text-medium-emphasis">
-            <p class="mb-2">💪 המשך לעדכן את המערכת</p>
-            <p>🎯 הגע ליעד השבועי</p>
-          </div>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- כפתור פתיחת מתנה - רק כשזה הזמן הנכון -->
-    <v-row v-if="!isAdmin && isUnlockable && !currentPrize.isUnlocked" class="mb-6">
-      <v-col cols="12" md="8" class="mx-auto">
-        <v-card class="prize-card" rounded="xl" elevation="8">
-          <v-card-text class="pa-8 text-center">
-            <div class="gift-box shake">
-              <v-icon
-                icon="mdi-gift"
-                size="150"
-                color="primary"
-                class="gift-icon"
-              />
-            </div>
-
-            <h3 class="text-h4 mt-6 mb-4">🎉 המתנה מוכנה!</h3>
-            <p class="text-h6 mb-6">כל הכבוד! הגעת ליעד השבועי!</p>
-
-            <v-btn
-              color="white"
-              size="x-large"
-              rounded="xl"
-              elevation="8"
-              class="unlock-button"
-              :loading="unlocking"
-              @click="unlockPrize"
-            >
-              <v-icon icon="mdi-gift-open" size="large" />
-              פתח את המתנה!
-            </v-btn>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- הצגת הפרס אחרי פתיחה - משתמש רגיל -->
-    <v-row v-if="!isAdmin && currentPrize.isUnlocked" class="mb-6">
-      <v-col cols="12" md="8" class="mx-auto">
-        <v-card class="prize-card" rounded="xl" elevation="8">
-          <v-card-text class="pa-8">
-            <div class="prize-container">
-              <div class="unlocked-state">
-                <!-- Confetti Background -->
-                <div class="confetti-container">
-                  <div class="confetti" v-for="i in 50" :key="i" :style="getConfettiStyle(i)"></div>
-                </div>
-
-                <!-- Gift Box Opening Animation -->
-                <div class="gift-opening-container">
-                  <div class="gift-box-bottom">
-                    <v-icon
-                      icon="mdi-gift"
-                      size="80"
-                      color="success"
-                    />
-                  </div>
-                  <div class="gift-box-lid">
-                    <v-icon
-                      icon="mdi-gift"
-                      size="40"
-                      color="success"
-                    />
-                  </div>
-
-                  <!-- Prize popping out -->
-                  <div class="prize-popup">
-                    <v-icon
-                      icon="mdi-star-circle"
-                      size="100"
-                      color="warning"
-                      class="prize-star"
-                    />
-                  </div>
-                </div>
-
-                <h3 class="text-h3 mb-4 mt-8 celebration-text">🎉 מזל טוב!</h3>
-
-                <p class="text-h6 mb-6 achievement-text">
-                  עמדת ביעד השבועי והכנסת השבוע ₪{{ currentPrize.weeklyActual.toLocaleString() }}!
-                </p>
-
-                <v-card class="prize-reveal" rounded="xl" elevation="8">
-                  <v-card-text class="pa-8">
-                    <p class="text-h5 mb-3 text-success">הפרס שלך:</p>
-                    <p class="text-h4 font-weight-bold text-primary">
-                      {{ currentPrize.prizeText }}
-                    </p>
-                  </v-card-text>
-                </v-card>
-
-                <p class="text-body-1 mt-6 text-medium-emphasis">
-                  נפתח ב: {{ formatDateTime(currentPrize.unlockedAt!) }}
-                </p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Prize Box - מוצג רק למנהל (כל הפרטים) -->
-    <v-row v-if="isAdmin" class="mb-6">
+    <!-- תצוגת הפרס - כולם (למעט כפתור פתיחה שמוצג רק בזמן הנכון) -->
+    <v-row v-if="!currentPrize.isUnlocked" class="mb-6">
       <v-col cols="12" md="8" class="mx-auto">
         <v-card class="prize-card" rounded="xl" elevation="8">
           <v-card-text class="pa-8">
@@ -270,10 +153,10 @@
                   </v-card-text>
                 </v-card>
 
-                <!-- Unlock Button -->
+                <!-- Unlock Button - רק במוצאי שבת + עמד ביעד -->
                 <v-btn
                   v-if="isUnlockable"
-                  color="primary"
+                  color="white"
                   size="x-large"
                   rounded="xl"
                   elevation="8"
@@ -285,6 +168,15 @@
                   פתח את המתנה!
                 </v-btn>
 
+                <!-- הודעה למשתמש רגיל -->
+                <p v-else-if="!isAdmin" class="text-body-1 text-medium-emphasis">
+                  {{ targetReached
+                    ? '🎯 מעולה! הגעת ליעד! פתיחת המתנה תהיה זמינה במוצאי שבת (שבת אחרי 20:00 או ביום ראשון) 🎁'
+                    : '💪 המשך לעדכן תשלומים כדי להגיע ליעד השבועי!'
+                  }}
+                </p>
+
+                <!-- הודעה למנהל -->
                 <p v-else class="text-body-1 text-medium-emphasis">
                   {{ targetReached
                     ? 'פתיחת המתנה תהיה זמינה במוצאי שבת (שבת אחרי 20:00 או ביום ראשון) 🎁'
@@ -348,6 +240,7 @@
                 </p>
 
                 <v-btn
+                  v-if="isAdmin"
                   color="primary"
                   size="large"
                   rounded="xl"
@@ -456,9 +349,7 @@ const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמי�
 
 // Check if user is admin (gift@gift.co.il)
 const isAdmin = computed(() => {
-  const result = auth.currentUser?.email === 'gift@gift.co.il'
-  console.log('🔍 WeeklyPrize - isAdmin:', result, 'email:', auth.currentUser?.email)
-  return result
+  return auth.currentUser?.email === 'gift@gift.co.il'
 })
 
 // Computed
@@ -481,13 +372,7 @@ const isSaturdayEvening = computed(() => {
 })
 
 const isUnlockable = computed(() => {
-  const result = targetReached.value && isSaturdayEvening.value && !currentPrize.value.isUnlocked
-  console.log('🔍 WeeklyPrize - isUnlockable:', result, {
-    targetReached: targetReached.value,
-    isSaturdayEvening: isSaturdayEvening.value,
-    isUnlocked: currentPrize.value.isUnlocked
-  })
-  return result
+  return targetReached.value && isSaturdayEvening.value && !currentPrize.value.isUnlocked
 })
 
 // יעד יומי - מחולק על 5 ימי עבודה (ראשון-חמישי)
@@ -600,8 +485,6 @@ const loadPrize = async () => {
         weekStart: doc.data().weekStart?.toDate() || weekStart,
         unlockedAt: doc.data().unlockedAt?.toDate()
       } as WeeklyPrize
-
-      console.log('🔍 WeeklyPrize - loaded prize:', currentPrize.value)
 
       // Update prize settings
       prizeSettings.value = {

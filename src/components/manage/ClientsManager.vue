@@ -137,6 +137,13 @@
                 </v-chip>
               </div>
               <div class="detail-row">
+                <v-icon icon="mdi-calendar-refresh" size="small" color="primary" />
+                <span class="detail-label">תדירות:</span>
+                <span class="detail-value" style="color: #546e7a;">
+                  {{ getFrequencyLabel(client.frequency) }}
+                </span>
+              </div>
+              <div class="detail-row">
                 <v-icon icon="mdi-calendar-check" size="small" color="primary" />
                 <span class="detail-label">סה"כ פגישות:</span>
                 <span class="detail-value font-weight-bold" style="color: #1976D2;">
@@ -154,7 +161,8 @@
                   :color="client.balance < 0 ? 'error' : 'success'"
                   size="small"
                   variant="elevated"
-                  class="font-weight-bold"
+                  class="font-weight-bold clickable-chip"
+                  @click="showBalanceDetails(client)"
                 >
                   {{ client.balance < 0 ? 'חוב' : 'זכות' }}: ₪{{ Math.abs(client.balance) }}
                 </v-chip>
@@ -254,6 +262,17 @@
               </template>
             </v-select>
 
+            <v-select
+              v-model="formData.frequency"
+              label="תדירות הגעה *"
+              :items="frequencyOptions"
+              prepend-inner-icon="mdi-calendar-refresh"
+              variant="outlined"
+              rounded="lg"
+              :rules="[rules.required]"
+              class="mb-4"
+            />
+
             <v-textarea
               v-model="formData.notes"
               label="הערות"
@@ -333,6 +352,115 @@
       </v-card>
     </v-dialog>
 
+    <!-- Balance Details Dialog -->
+    <v-dialog v-model="showBalanceDialog" max-width="700" @click:outside="closeBalanceDialog">
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right section-header-clean">
+          <v-icon icon="mdi-receipt-text-outline" size="24" style="opacity: 0.8;" />
+          <span class="text-h6">פירוט חוב - {{ selectedClientForBalance?.name }}</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <v-alert
+            v-if="loadingBalanceDetails"
+            type="info"
+            variant="tonal"
+            class="mb-4"
+          >
+            טוען נתונים...
+          </v-alert>
+
+          <div v-else>
+            <!-- Summary -->
+            <v-card class="mb-4" rounded="lg" color="blue-grey-lighten-5" elevation="0">
+              <v-card-text class="pa-4">
+                <v-row align="center">
+                  <v-col cols="4" class="text-center">
+                    <div class="text-caption text-medium-emphasis">סה"כ לתשלום</div>
+                    <div class="text-h6 font-weight-bold text-error">
+                      ₪{{ balanceDetails.totalOwed.toLocaleString() }}
+                    </div>
+                  </v-col>
+                  <v-col cols="4" class="text-center">
+                    <div class="text-caption text-medium-emphasis">סה"כ שולם</div>
+                    <div class="text-h6 font-weight-bold text-success">
+                      ₪{{ balanceDetails.totalPaid.toLocaleString() }}
+                    </div>
+                  </v-col>
+                  <v-col cols="4" class="text-center">
+                    <div class="text-caption text-medium-emphasis">יתרה</div>
+                    <div class="text-h6 font-weight-bold" :class="balanceDetails.balance < 0 ? 'text-error' : 'text-success'">
+                      {{ balanceDetails.balance < 0 ? 'חוב' : 'זכות' }}: ₪{{ Math.abs(balanceDetails.balance).toLocaleString() }}
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- Appointments List -->
+            <div v-if="balanceDetails.appointments.length > 0">
+              <h4 class="text-subtitle-1 font-weight-bold mb-3">היסטוריית פגישות</h4>
+              <v-list density="compact" class="appointments-list">
+                <v-list-item
+                  v-for="(apt, idx) in balanceDetails.appointments"
+                  :key="idx"
+                  class="appointment-item rounded-lg mb-2"
+                  :class="{ 'attended': apt.attended }"
+                >
+                  <template #prepend>
+                    <v-icon
+                      :icon="apt.attended ? 'mdi-check-circle' : 'mdi-circle-outline'"
+                      :color="apt.attended ? 'success' : 'grey'"
+                    />
+                  </template>
+
+                  <v-list-item-title>
+                    <div class="d-flex align-center gap-2">
+                      <span class="font-weight-bold">{{ formatDate(apt.date) }}</span>
+                      <v-chip size="x-small" color="primary" variant="flat">{{ apt.time }}</v-chip>
+                      <v-chip size="x-small" v-if="!apt.attended" color="grey" variant="flat">לא הגיע</v-chip>
+                    </div>
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle v-if="apt.attended" class="mt-1">
+                    <div class="d-flex justify-space-between align-center">
+                      <span>מחיר: ₪{{ apt.price }}</span>
+                      <span>שולם: ₪{{ apt.paid }}</span>
+                      <span :class="apt.balance < 0 ? 'text-error font-weight-bold' : 'text-success'">
+                        יתרה: ₪{{ apt.balance }}
+                      </span>
+                    </div>
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </div>
+
+            <v-alert
+              v-else
+              type="info"
+              variant="tonal"
+              class="mt-4"
+            >
+              אין עדיין פגישות עבור לקוח זה
+            </v-alert>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer />
+          <v-btn
+            variant="outlined"
+            rounded="xl"
+            size="large"
+            @click="closeBalanceDialog"
+            class="px-6"
+          >
+            סגור
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">
       {{ snackbar.message }}
@@ -342,7 +470,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, where } from 'firebase/firestore'
 import { db } from '@/firebase'
 import type { Client } from '@/types/manage'
 
@@ -353,17 +481,35 @@ const priceFilter = ref<number | null>(null)
 const sortBy = ref('name')
 const showDialog = ref(false)
 const showDeleteDialog = ref(false)
+const showBalanceDialog = ref(false)
 const editMode = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
+const loadingBalanceDetails = ref(false)
 const clientToDelete = ref<Client | null>(null)
+const selectedClientForBalance = ref<Client | null>(null)
 const formRef = ref()
+
+const balanceDetails = ref({
+  totalOwed: 0,
+  totalPaid: 0,
+  balance: 0,
+  appointments: [] as Array<{
+    date: Date
+    time: string
+    price: number
+    paid: number
+    balance: number
+    attended: boolean
+  }>
+})
 
 const formData = ref({
   name: '',
   phone: '',
   email: '',
   pricePerSession: 400,
+  frequency: 'weekly' as 'weekly' | 'biweekly' | 'monthly',
   notes: ''
 })
 
@@ -385,6 +531,12 @@ const sortOptions = [
   { title: 'תאריך הצטרפות', value: 'createdAt' },
   { title: 'מספר פגישות', value: 'totalSessions' },
   { title: 'יתרה', value: 'balance' }
+]
+
+const frequencyOptions = [
+  { title: 'כל שבוע', value: 'weekly' },
+  { title: 'פעם בשבועיים', value: 'biweekly' },
+  { title: 'פעם בחודש', value: 'monthly' }
 ]
 
 // Validation Rules
@@ -463,6 +615,7 @@ const openAddDialog = () => {
     phone: '',
     email: '',
     pricePerSession: 400,
+    frequency: 'weekly',
     notes: ''
   }
   showDialog.value = true
@@ -475,6 +628,7 @@ const openEditDialog = (client: Client) => {
     phone: client.phone || '',
     email: client.email || '',
     pricePerSession: client.pricePerSession,
+    frequency: client.frequency || 'weekly',
     notes: client.notes || ''
   }
   clientToDelete.value = client
@@ -499,6 +653,7 @@ const saveClient = async () => {
         phone: formData.value.phone || null,
         email: formData.value.email || null,
         pricePerSession: formData.value.pricePerSession,
+        frequency: formData.value.frequency,
         notes: formData.value.notes
       })
       showSnackbar('הלקוח עודכן בהצלחה', 'success')
@@ -509,6 +664,7 @@ const saveClient = async () => {
         phone: formData.value.phone || null,
         email: formData.value.email || null,
         pricePerSession: formData.value.pricePerSession,
+        frequency: formData.value.frequency,
         notes: formData.value.notes,
         totalSessions: 0,
         balance: 0,
@@ -556,12 +712,94 @@ const getPriceColor = (price: number) => {
   return 'grey'
 }
 
+const getFrequencyLabel = (frequency: string) => {
+  if (frequency === 'weekly') return 'כל שבוע'
+  if (frequency === 'biweekly') return 'פעם בשבועיים'
+  if (frequency === 'monthly') return 'פעם בחודש'
+  return 'כל שבוע'
+}
+
 const formatDate = (date: Date) => {
   return new Intl.DateTimeFormat('he-IL', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   }).format(date)
+}
+
+const showBalanceDetails = async (client: Client) => {
+  selectedClientForBalance.value = client
+  showBalanceDialog.value = true
+  loadingBalanceDetails.value = true
+
+  try {
+    // Get all appointments for this client
+    const appointmentsQuery = query(
+      collection(db, 'appointments'),
+      where('clientId', '==', client.id)
+    )
+    const appointmentsSnapshot = await getDocs(appointmentsQuery)
+
+    let totalOwed = 0
+    let totalPaid = 0
+    const appointments: any[] = []
+
+    appointmentsSnapshot.forEach(docSnap => {
+      const apt = docSnap.data()
+      const aptDate = apt.date?.toDate ? apt.date.toDate() : new Date(apt.date)
+
+      if (apt.attended) {
+        const paidForApt = apt.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
+        totalOwed += apt.price || 0
+        totalPaid += paidForApt
+
+        appointments.push({
+          date: aptDate,
+          time: apt.time,
+          price: apt.price || 0,
+          paid: paidForApt,
+          balance: paidForApt - apt.price,
+          attended: true
+        })
+      } else {
+        // Show non-attended appointments too
+        appointments.push({
+          date: aptDate,
+          time: apt.time,
+          price: apt.price || 0,
+          paid: 0,
+          balance: 0,
+          attended: false
+        })
+      }
+    })
+
+    // Sort by date descending
+    appointments.sort((a, b) => b.date.getTime() - a.date.getTime())
+
+    balanceDetails.value = {
+      totalOwed,
+      totalPaid,
+      balance: totalPaid - totalOwed,
+      appointments
+    }
+  } catch (error) {
+    console.error('Error loading balance details:', error)
+    showSnackbar('שגיאה בטעינת פירוט החוב', 'error')
+  } finally {
+    loadingBalanceDetails.value = false
+  }
+}
+
+const closeBalanceDialog = () => {
+  showBalanceDialog.value = false
+  selectedClientForBalance.value = null
+  balanceDetails.value = {
+    totalOwed: 0,
+    totalPaid: 0,
+    balance: 0,
+    appointments: []
+  }
 }
 
 const showSnackbar = (message: string, color: string) => {
@@ -673,6 +911,31 @@ onMounted(() => {
 
 .hover-item:hover {
   background: rgba(25, 118, 210, 0.08);
+}
+
+.clickable-chip {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clickable-chip:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.appointments-list .appointment-item {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin-bottom: 8px;
+  background: #fafafa;
+}
+
+.appointments-list .appointment-item.attended {
+  background: rgba(76, 175, 80, 0.03);
+  border-color: rgba(76, 175, 80, 0.2);
+}
+
+.gap-2 {
+  gap: 8px;
 }
 </style>
 

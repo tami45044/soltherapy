@@ -212,17 +212,32 @@
                     />
                   </v-col>
                   <v-col cols="6">
-                    <v-select
-                      v-model="slot.defaultClientId"
-                      label="לקוח קבוע"
+                    <v-autocomplete
+                      v-model="slot.defaultClientIds"
+                      label="לקוחות (לפי תדירות)"
                       :items="clientOptions"
                       item-title="name"
                       item-value="id"
                       variant="outlined"
                       density="compact"
+                      multiple
+                      chips
                       clearable
                       hide-details
-                    />
+                      auto-select-first
+                      placeholder="הקלד לחיפוש..."
+                    >
+                      <template #chip="{ props, item }">
+                        <v-chip
+                          v-bind="props"
+                          size="small"
+                          closable
+                          @click:close="removeClientFromSlot(slot, item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                    </v-autocomplete>
                   </v-col>
                   <v-col cols="2" class="d-flex justify-center">
                     <v-btn
@@ -710,15 +725,23 @@ const rules = {
 }
 
 // Computed
-const clientOptions = computed(() => clients.value)
+const clientOptions = computed(() => {
+  return [...clients.value].sort((a, b) => a.name.localeCompare(b.name, 'he'))
+})
 
 const hasTemplate = computed(() => templateSlots.value.length > 0)
 
 const expectedWeeklyTarget = computed(() => {
   let total = 0
   templateSlots.value.forEach(slot => {
-    if (slot.defaultClientId) {
-      const client = clients.value.find(c => c.id === slot.defaultClientId)
+    // Support both old and new format
+    const clientIds = slot.defaultClientIds && slot.defaultClientIds.length > 0
+      ? slot.defaultClientIds
+      : (slot.defaultClientId ? [slot.defaultClientId] : [])
+
+    // Add price of first client only (as estimate, since not all clients come every week)
+    if (clientIds.length > 0) {
+      const client = clients.value.find(c => c.id === clientIds[0])
       if (client) {
         total += client.pricePerSession
       }
@@ -736,7 +759,12 @@ const isWeekFilledFromTemplate = computed(() => {
     const dayDate = daysOfWeek.value[slot.dayOfWeek]?.date
     if (dayDate) {
       const existing = getAppointment(dayDate, slot.time)
-      if (!existing && slot.defaultClientId) {
+
+      // Support both old and new format
+      const hasClients = (slot.defaultClientIds && slot.defaultClientIds.length > 0)
+        || slot.defaultClientId
+
+      if (!existing && hasClients) {
         allSlotsFilled = false
         break
       }
@@ -990,13 +1018,27 @@ const loadTemplate = async () => {
     const snapshot = await getDocs(collection(db, 'schedule_template'))
     templateSlots.value = snapshot.docs.map(doc => {
       const data = doc.data()
-      return {
-        id: doc.id,
-        dayOfWeek: data.dayOfWeek,
-        time: data.time,
-        defaultClientId: data.defaultClientId,
-        defaultClientName: data.defaultClientName
-      } as ScheduleSlot
+
+      // Support both old (single client) and new (multiple clients) format
+      if (data.defaultClientIds && Array.isArray(data.defaultClientIds)) {
+        // New format
+        return {
+          id: doc.id,
+          dayOfWeek: data.dayOfWeek,
+          time: data.time,
+          defaultClientIds: data.defaultClientIds,
+          defaultClientNames: data.defaultClientNames || []
+        } as ScheduleSlot
+      } else {
+        // Old format - convert to new
+        return {
+          id: doc.id,
+          dayOfWeek: data.dayOfWeek,
+          time: data.time,
+          defaultClientIds: data.defaultClientId ? [data.defaultClientId] : [],
+          defaultClientNames: data.defaultClientName ? [data.defaultClientName] : []
+        } as ScheduleSlot
+      }
     })
   } catch (error) {
     console.error('Error loading template:', error)
@@ -1019,8 +1061,8 @@ const addTemplateSlot = (dayIndex: number) => {
     id: `temp_${Date.now()}`,
     dayOfWeek: dayIndex,
     time: '09:00',
-    defaultClientId: undefined,
-    defaultClientName: undefined
+    defaultClientIds: [],
+    defaultClientNames: []
   }
   templateSlots.value.push(newSlot)
 }
@@ -1031,6 +1073,16 @@ const removeTemplateSlot = (dayIndex: number, slotIndex: number) => {
   const index = templateSlots.value.findIndex(s => s.id === slotToRemove.id)
   if (index > -1) {
     templateSlots.value.splice(index, 1)
+  }
+}
+
+const removeClientFromSlot = (slot: ScheduleSlot, clientId: string) => {
+  const index = slot.defaultClientIds.indexOf(clientId)
+  if (index > -1) {
+    slot.defaultClientIds.splice(index, 1)
+    if (slot.defaultClientNames && slot.defaultClientNames.length > index) {
+      slot.defaultClientNames.splice(index, 1)
+    }
   }
 }
 
@@ -1046,15 +1098,17 @@ const saveTemplate = async () => {
     // Save new template (only slots that are valid)
     for (const slot of templateSlots.value) {
       if (slot.time) {
-        const clientName = slot.defaultClientId
-          ? clients.value.find(c => c.id === slot.defaultClientId)?.name
-          : null
+        // Update client names based on selected IDs
+        const clientNames = (slot.defaultClientIds || []).map(clientId => {
+          const client = clients.value.find(c => c.id === clientId)
+          return client ? client.name : ''
+        }).filter(name => name !== '')
 
         await addDoc(collection(db, 'schedule_template'), {
           dayOfWeek: slot.dayOfWeek,
           time: slot.time,
-          defaultClientId: slot.defaultClientId || null,
-          defaultClientName: clientName
+          defaultClientIds: slot.defaultClientIds || [],
+          defaultClientNames: clientNames
         })
       }
     }
@@ -1068,6 +1122,47 @@ const saveTemplate = async () => {
   } finally {
     savingTemplate.value = false
   }
+}
+
+// Helper: Check if client should be added this week based on frequency
+const shouldAddClientThisWeek = async (clientId: string, frequency: string) => {
+  if (frequency === 'weekly') return true
+
+  // Get all appointments for this client (without orderBy to avoid index requirement)
+  const clientAppointmentsQuery = query(
+    collection(db, 'appointments'),
+    where('clientId', '==', clientId)
+  )
+  const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
+
+  if (clientAppointmentsSnapshot.empty) return true // First appointment
+
+  // Sort appointments by date in memory
+  const appointments = clientAppointmentsSnapshot.docs
+    .map(doc => doc.data())
+    .sort((a, b) => {
+      const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date)
+      const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date)
+      return dateB.getTime() - dateA.getTime() // desc order
+    })
+
+  const lastAppointment = appointments[0]
+  const lastDate = lastAppointment.date?.toDate() || new Date(lastAppointment.date)
+  const currentWeekStart = getWeekStart(new Date())
+
+  const daysSinceLastAppointment = Math.floor(
+    (currentWeekStart.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  if (frequency === 'biweekly') {
+    return daysSinceLastAppointment >= 14
+  }
+
+  if (frequency === 'monthly') {
+    return daysSinceLastAppointment >= 28
+  }
+
+  return true
 }
 
 const fillWeekFromTemplate = async () => {
@@ -1086,50 +1181,70 @@ const fillWeekFromTemplate = async () => {
       const daySlots = templateSlots.value.filter(s => s.dayOfWeek === day.index)
 
       for (const slot of daySlots) {
-        // Check if appointment already exists
-        const existing = getAppointment(day.date, slot.time)
-        if (existing) {
-          continue
-        }
+        // Support old format (single client) and new format (multiple clients)
+        const clientIds = slot.defaultClientIds && slot.defaultClientIds.length > 0
+          ? slot.defaultClientIds
+          : (slot.defaultClientId ? [slot.defaultClientId] : [])
 
-        if (slot.defaultClientId) {
-          const client = clients.value.find(c => c.id === slot.defaultClientId)
-          if (client) {
-            // Calculate session number for this client
-            if (!clientSessionCounts[client.id]) {
-              // First time seeing this client - count existing appointments
-              const clientAppointmentsQuery = query(
-                collection(db, 'appointments'),
-                where('clientId', '==', client.id)
-              )
-              const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
-              clientSessionCounts[client.id] = clientAppointmentsSnapshot.size
-            }
+        // Loop through all clients for this slot
+        for (const clientId of clientIds) {
+          const client = clients.value.find(c => c.id === clientId)
+          if (!client) continue
 
-            // Increment for this new appointment
-            clientSessionCounts[client.id]++
-            const sessionNumber = clientSessionCounts[client.id]
+          // Check if THIS CLIENT already has an appointment at this time
+          const existingAppointment = appointments.value.find(apt => {
+            const aptDate = apt.date instanceof Date ? apt.date : new Date(apt.date)
+            return isSameDay(aptDate, day.date) && apt.time === slot.time && apt.clientId === client.id
+          })
 
-            // Create date at midnight
-            const appointmentDate = new Date(day.date)
-            appointmentDate.setHours(0, 0, 0, 0)
-
-            const appointmentData = {
-              clientId: client.id,
-              clientName: client.name,
-              date: appointmentDate,
-              time: slot.time,
-              price: client.pricePerSession,
-              attended: false,
-              paid: false,
-              payments: [],
-              sessionNumber: sessionNumber,
-              notes: ''
-            }
-
-            await addDoc(collection(db, 'appointments'), appointmentData)
-            addedCount++
+          if (existingAppointment) {
+            console.log(`⏭️ Skip ${client.name} - already has appointment at ${slot.time}`)
+            continue
           }
+
+          // Check if client should be added this week based on frequency
+          const shouldAdd = await shouldAddClientThisWeek(client.id, client.frequency || 'weekly')
+
+          if (!shouldAdd) {
+            console.log(`⏭️ Skip ${client.name} - not due this week (${client.frequency})`)
+            continue
+          }
+
+          // Calculate session number for this client
+          if (!clientSessionCounts[client.id]) {
+            // First time seeing this client - count existing appointments
+            const clientAppointmentsQuery = query(
+              collection(db, 'appointments'),
+              where('clientId', '==', client.id)
+            )
+            const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
+            clientSessionCounts[client.id] = clientAppointmentsSnapshot.size
+          }
+
+          // Increment for this new appointment
+          clientSessionCounts[client.id]++
+          const sessionNumber = clientSessionCounts[client.id]
+
+          // Create date at midnight
+          const appointmentDate = new Date(day.date)
+          appointmentDate.setHours(0, 0, 0, 0)
+
+          const appointmentData = {
+            clientId: client.id,
+            clientName: client.name,
+            date: appointmentDate,
+            time: slot.time,
+            price: client.pricePerSession,
+            attended: false,
+            paid: false,
+            payments: [],
+            sessionNumber: sessionNumber,
+            notes: ''
+          }
+
+          await addDoc(collection(db, 'appointments'), appointmentData)
+          addedCount++
+          break // Only add ONE client per slot per week
         }
       }
     }
@@ -1404,17 +1519,30 @@ const saveAppointment = async () => {
     }
 
     // Update client balance and session count (only if attended)
-    const balanceChange = totalPaid.value - appointmentForm.value.price
-    const updateData: any = {
-      balance: client.balance + balanceChange
+    const updateData: any = {}
+
+    // Only update balance if client attended
+    if (appointmentForm.value.attended) {
+      const balanceChange = totalPaid.value - appointmentForm.value.price
+      updateData.balance = client.balance + balanceChange
+    } else if (selectedAppointment.value?.attended && !appointmentForm.value.attended) {
+      // Client was marked as attended before but now not - reverse the balance
+      const previousPaid = selectedAppointment.value.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+      const balanceChange = previousPaid - selectedAppointment.value.price
+      updateData.balance = client.balance - balanceChange
     }
 
     // Update totalSessions only when marking as attended for the first time
     if (appointmentForm.value.attended && !selectedAppointment.value?.attended) {
       updateData.totalSessions = client.totalSessions + 1
+    } else if (selectedAppointment.value?.attended && !appointmentForm.value.attended) {
+      // Was attended before but now not - decrease session count
+      updateData.totalSessions = Math.max(0, client.totalSessions - 1)
     }
 
-    await updateDoc(doc(db, 'clients', client.id), updateData)
+    if (Object.keys(updateData).length > 0) {
+      await updateDoc(doc(db, 'clients', client.id), updateData)
+    }
 
     await loadAppointments()
     await loadClients() // Reload to see updated balance
@@ -1465,14 +1593,72 @@ const updateWeeklyPrizeActual = async () => {
   }
 }
 
+// Helper: Recalculate client balance from all appointments
+const recalculateClientBalance = async (clientId: string) => {
+  try {
+    const client = clients.value.find(c => c.id === clientId)
+    if (!client) return
+
+    // Get all appointments for this client where they attended
+    const appointmentsQuery = query(
+      collection(db, 'appointments'),
+      where('clientId', '==', clientId)
+    )
+    const appointmentsSnapshot = await getDocs(appointmentsQuery)
+
+    let totalOwed = 0
+    let totalPaid = 0
+    let sessionsAttended = 0
+
+    appointmentsSnapshot.forEach(docSnap => {
+      const apt = docSnap.data()
+      if (apt.attended) {
+        totalOwed += apt.price || 0
+        const paidForApt = apt.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
+        totalPaid += paidForApt
+        sessionsAttended++
+      }
+    })
+
+    const balance = totalPaid - totalOwed
+
+    await updateDoc(doc(db, 'clients', clientId), {
+      balance: balance,
+      totalSessions: sessionsAttended
+    })
+
+    console.log(`✅ Recalculated balance for ${client.name}: owed=${totalOwed}, paid=${totalPaid}, balance=${balance}`)
+  } catch (error) {
+    console.error('Error recalculating balance:', error)
+  }
+}
+
 const confirmDeleteAppointment = async () => {
   if (!selectedAppointment.value) return
 
   try {
-    await deleteDoc(doc(db, 'appointments', selectedAppointment.value.id))
+    const appointment = selectedAppointment.value
+
+    // Update client balance if appointment was attended
+    if (appointment.attended) {
+      const client = clients.value.find(c => c.id === appointment.clientId)
+      if (client) {
+        const totalPaid = appointment.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+        const balanceChange = totalPaid - appointment.price
+
+        await updateDoc(doc(db, 'clients', client.id), {
+          balance: client.balance - balanceChange,
+          totalSessions: Math.max(0, client.totalSessions - 1)
+        })
+      }
+    }
+
+    await deleteDoc(doc(db, 'appointments', appointment.id))
     showSnackbar('הפגישה נמחקה בהצלחה', 'success')
     closeAppointmentDialog()
     await loadAppointments()
+    await loadClients() // Reload to see updated balance
+    await updateWeeklyPrizeActual() // Update weekly prize actual amount
   } catch (error) {
     console.error('Error deleting appointment:', error)
     showSnackbar('שגיאה במחיקת הפגישה', 'error')

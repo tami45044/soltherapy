@@ -1,4 +1,6 @@
 // Client Types
+export type ClientFrequency = 'weekly' | 'biweekly' | 'monthly'
+
 export interface Client {
   id: string
   name: string
@@ -7,6 +9,8 @@ export interface Client {
   pricePerSession: number // 350, 400, or 500
   totalSessions: number
   balance: number // חוב או זכות (שלילי = חוב, חיובי = זכות)
+  frequency: ClientFrequency // תדירות הגעה
+  lastAppointmentDate?: Date // תאריך הפגישה האחרונה
   createdAt: Date
   notes?: string
 }
@@ -52,8 +56,8 @@ export interface ScheduleSlot {
   id: string
   dayOfWeek: number // 0=Sunday, 6=Saturday
   time: string // HH:mm format
-  defaultClientId?: string
-  defaultClientName?: string
+  defaultClientIds: string[] // מספר לקוחות אפשריים
+  defaultClientNames: string[] // שמות הלקוחות
 }
 
 // Weekly Prize Settings

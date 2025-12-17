@@ -116,8 +116,8 @@
               <v-expansion-panel v-for="(faq, index) in faqs" :key="faq.question" class="faq-panel">
                 <v-expansion-panel-title class="faq-question">
                   <div class="faq-title-content">
-                    <span>{{ faq.question }}</span>
                     <div class="faq-number">{{ index + 1 }}</div>
+                    <span>{{ faq.question }}</span>
                   </div>
                 </v-expansion-panel-title>
                 <v-expansion-panel-text class="faq-answer">

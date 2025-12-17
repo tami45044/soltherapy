@@ -15,7 +15,7 @@
           @click="openAddDialog"
           class="flex-shrink-0"
         >
-          <v-icon icon="mdi-plus" size="20" class="ms-2" />
+          <v-icon icon="mdi-plus" size="20" />
           לקוח חדש
         </v-btn>
       </v-col>
@@ -79,13 +79,20 @@
             <div class="d-flex justify-space-between align-start mb-4">
               <div class="text-right flex-grow-1">
                 <h3 class="text-h6 font-weight-bold mb-2" style="color: #1976D2;">
-                  <v-icon icon="mdi-account-circle" size="small" class="ms-1" color="primary" />
+                  <v-icon icon="mdi-account-circle" size="small" color="primary" />
                   {{ client.name }}
                 </h3>
-                <p class="text-body-2" style="color: #546e7a;">
-                  <v-icon icon="mdi-phone" size="small" class="ms-1" color="primary" />
-                  {{ client.phone }}
-                </p>
+                <div v-if="client.phone || client.email" class="contact-info">
+                  <span v-if="client.phone" class="text-body-2" style="color: #546e7a;">
+                    <v-icon icon="mdi-phone" size="small" color="primary" />
+                    {{ client.phone }}
+                  </span>
+                  <span v-if="client.phone && client.email" class="contact-divider">•</span>
+                  <span v-if="client.email" class="text-body-2" style="color: #546e7a;">
+                    <v-icon icon="mdi-email" size="small" color="primary" />
+                    {{ client.email }}
+                  </span>
+                </div>
               </div>
               <v-menu location="start">
                 <template #activator="{ props }">
@@ -118,7 +125,7 @@
 
             <div class="client-details">
               <div class="detail-row">
-                <v-icon icon="mdi-cash-multiple" size="small" color="primary" class="ms-1" />
+                <v-icon icon="mdi-cash-multiple" size="small" color="primary" />
                 <span class="detail-label">מחיר פגישה:</span>
                 <v-chip
                   :color="getPriceColor(client.pricePerSession)"
@@ -130,7 +137,7 @@
                 </v-chip>
               </div>
               <div class="detail-row">
-                <v-icon icon="mdi-calendar-check" size="small" color="primary" class="ms-1" />
+                <v-icon icon="mdi-calendar-check" size="small" color="primary" />
                 <span class="detail-label">סה"כ פגישות:</span>
                 <span class="detail-value font-weight-bold" style="color: #1976D2;">
                   {{ client.totalSessions }}
@@ -141,7 +148,6 @@
                   :icon="client.balance < 0 ? 'mdi-alert-circle' : 'mdi-check-circle'"
                   size="small"
                   :color="client.balance < 0 ? 'error' : 'success'"
-                  class="ms-1"
                 />
                 <span class="detail-label">יתרה:</span>
                 <v-chip
@@ -158,7 +164,7 @@
             <v-divider class="my-4" />
 
             <div class="text-caption text-right" style="color: #78909c;">
-              <v-icon icon="mdi-calendar-plus" size="small" class="ms-1" color="primary" />
+              <v-icon icon="mdi-calendar-plus" size="small" color="primary" />
               נוסף: {{ formatDate(client.createdAt) }}
             </div>
           </v-card-text>
@@ -181,7 +187,7 @@
           rounded="xl"
           @click="openAddDialog"
         >
-          <v-icon icon="mdi-plus" class="ms-2" />
+          <v-icon icon="mdi-plus" />
           הוסף לקוח ראשון
         </v-btn>
       </v-col>
@@ -191,7 +197,7 @@
     <v-dialog v-model="showDialog" max-width="600" @click:outside="closeDialog">
       <v-card rounded="xl">
         <v-card-title class="pa-5 text-right section-header-clean">
-          <v-icon icon="mdi-account-plus-outline" size="24" class="ms-2" style="opacity: 0.8;" />
+          <v-icon icon="mdi-account-plus-outline" size="24" style="opacity: 0.8;" />
           <span class="text-h6">{{ editMode ? 'עריכת לקוח' : 'לקוח חדש' }}</span>
         </v-card-title>
 
@@ -209,11 +215,21 @@
 
             <v-text-field
               v-model="formData.phone"
-              label="טלפון *"
+              label="טלפון"
               prepend-inner-icon="mdi-phone-outline"
               variant="outlined"
               rounded="lg"
-              :rules="[rules.required, rules.phone]"
+              :rules="[rules.phone]"
+              class="mb-4"
+            />
+
+            <v-text-field
+              v-model="formData.email"
+              label="אימייל"
+              prepend-inner-icon="mdi-email-outline"
+              variant="outlined"
+              rounded="lg"
+              :rules="[rules.email]"
               class="mb-4"
             />
 
@@ -250,19 +266,8 @@
           </v-form>
         </v-card-text>
 
-        <v-card-actions class="pa-6 pt-0 d-flex justify-start">
-          <v-btn
-            color="blue-grey-darken-2"
-            rounded="xl"
-            variant="flat"
-            size="large"
-            :loading="saving"
-            @click="saveClient"
-            class="px-6"
-          >
-            <v-icon icon="mdi-content-save-outline" size="18" class="ms-2" />
-            שמירה
-          </v-btn>
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer />
           <v-btn
             variant="outlined"
             rounded="xl"
@@ -272,7 +277,19 @@
           >
             ביטול
           </v-btn>
-          <v-spacer />
+          <v-btn
+            color="primary"
+            rounded="xl"
+            variant="elevated"
+            size="large"
+            elevation="2"
+            :loading="saving"
+            @click="saveClient"
+            class="px-8"
+          >
+            <v-icon icon="mdi-check" />
+            שמור
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -281,17 +298,37 @@
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card rounded="xl">
         <v-card-title class="pa-6 text-right">
+          <v-icon icon="mdi-alert" color="error" />
           אישור מחיקה
-          <v-icon icon="mdi-alert" color="error" class="me-2" />
         </v-card-title>
         <v-card-text class="pa-6 pt-0 text-right">
           <p>האם אתה בטוח שברצונך למחוק את <strong>{{ clientToDelete?.name }}</strong>?</p>
           <p class="text-caption text-error mt-2">פעולה זו אינה ניתנת לביטול</p>
         </v-card-text>
         <v-card-actions class="pa-6 pt-0">
-          <v-btn color="error" rounded="xl" :loading="deleting" @click="deleteClient">מחיקה</v-btn>
-          <v-btn variant="text" @click="showDeleteDialog = false">ביטול</v-btn>
           <v-spacer />
+          <v-btn
+            variant="outlined"
+            rounded="xl"
+            size="large"
+            @click="showDeleteDialog = false"
+            class="px-6"
+          >
+            ביטול
+          </v-btn>
+          <v-btn
+            color="error"
+            rounded="xl"
+            variant="elevated"
+            size="large"
+            elevation="2"
+            :loading="deleting"
+            @click="deleteClient"
+            class="px-6"
+          >
+            <v-icon icon="mdi-delete" />
+            מחק
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -325,6 +362,7 @@ const formRef = ref()
 const formData = ref({
   name: '',
   phone: '',
+  email: '',
   pricePerSession: 400,
   notes: ''
 })
@@ -353,8 +391,14 @@ const sortOptions = [
 const rules = {
   required: (value: any) => !!value || 'שדה חובה',
   phone: (value: string) => {
+    if (!value) return true // Optional field
     const pattern = /^0\d{1,2}-?\d{7}$/
     return pattern.test(value) || 'מספר טלפון לא תקין'
+  },
+  email: (value: string) => {
+    if (!value) return true // Optional field
+    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return pattern.test(value) || 'כתובת אימייל לא תקינה'
   }
 }
 
@@ -367,7 +411,8 @@ const filteredClients = computed(() => {
     const searchLower = search.value.toLowerCase()
     result = result.filter(c =>
       c.name.toLowerCase().includes(searchLower) ||
-      c.phone.includes(searchLower)
+      (c.phone && c.phone.includes(searchLower)) ||
+      (c.email && c.email.toLowerCase().includes(searchLower))
     )
   }
 
@@ -416,6 +461,7 @@ const openAddDialog = () => {
   formData.value = {
     name: '',
     phone: '',
+    email: '',
     pricePerSession: 400,
     notes: ''
   }
@@ -426,7 +472,8 @@ const openEditDialog = (client: Client) => {
   editMode.value = true
   formData.value = {
     name: client.name,
-    phone: client.phone,
+    phone: client.phone || '',
+    email: client.email || '',
     pricePerSession: client.pricePerSession,
     notes: client.notes || ''
   }
@@ -449,7 +496,8 @@ const saveClient = async () => {
       // Update existing client
       await updateDoc(doc(db, 'clients', clientToDelete.value.id), {
         name: formData.value.name,
-        phone: formData.value.phone,
+        phone: formData.value.phone || null,
+        email: formData.value.email || null,
         pricePerSession: formData.value.pricePerSession,
         notes: formData.value.notes
       })
@@ -458,7 +506,8 @@ const saveClient = async () => {
       // Add new client
       await addDoc(collection(db, 'clients'), {
         name: formData.value.name,
-        phone: formData.value.phone,
+        phone: formData.value.phone || null,
+        email: formData.value.email || null,
         pricePerSession: formData.value.pricePerSession,
         notes: formData.value.notes,
         totalSessions: 0,
@@ -565,6 +614,19 @@ onMounted(() => {
   border-color: #B0BEC5;
 }
 
+.contact-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.contact-divider {
+  color: #B0BEC5;
+  font-weight: 500;
+  padding: 0 4px;
+}
+
 .client-details {
   display: flex;
   flex-direction: column;
@@ -573,8 +635,9 @@ onMounted(() => {
 
 .detail-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 8px;
   padding: 8px 12px;
   background: rgba(25, 118, 210, 0.03);
   border-radius: 12px;
@@ -586,10 +649,17 @@ onMounted(() => {
   transform: translateX(-2px);
 }
 
+.detail-row .v-icon {
+  flex-shrink: 0;
+  width: 24px;
+}
+
 .detail-label {
   font-weight: 600;
   color: #546e7a;
   font-size: 0.875rem;
+  min-width: 110px;
+  flex-shrink: 0;
 }
 
 .detail-value {

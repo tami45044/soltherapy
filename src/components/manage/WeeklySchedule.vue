@@ -11,15 +11,15 @@
       <v-col cols="12" md="4" class="text-left">
         <v-btn-group rounded="xl" elevation="2">
           <v-btn @click="previousWeek" color="primary" variant="flat">
+            <v-icon icon="mdi-chevron-right" />
             שבוע קודם
-            <v-icon icon="mdi-chevron-right" class="me-2" />
           </v-btn>
           <v-btn @click="currentWeek" color="primary" variant="outlined" min-width="100">
             היום
           </v-btn>
           <v-btn @click="nextWeek" color="primary" variant="flat">
-            <v-icon icon="mdi-chevron-left" class="ms-2" />
             שבוע הבא
+            <v-icon icon="mdi-chevron-left" />
           </v-btn>
         </v-btn-group>
       </v-col>
@@ -35,7 +35,7 @@
           rounded="xl"
           @click="showTemplateDialog = true"
         >
-          <v-icon icon="mdi-calendar-clock" class="ms-2" />
+          <v-icon icon="mdi-calendar-clock" />
           הגדר תבנית שבועית
         </v-btn>
       </v-col>
@@ -49,7 +49,7 @@
           :disabled="!canFillWeek"
           @click="fillWeekFromTemplate"
         >
-          <v-icon icon="mdi-auto-fix" size="20" class="ms-2" />
+          <v-icon icon="mdi-auto-fix" size="20" />
           מלא שבוע מתבנית
         </v-btn>
       </v-col>
@@ -61,7 +61,7 @@
           rounded="xl"
           @click="openAppointmentDialog(new Date(), '09:00')"
         >
-          <v-icon icon="mdi-calendar-plus" class="ms-2" />
+          <v-icon icon="mdi-calendar-plus" />
           הוסף פגישה
         </v-btn>
       </v-col>
@@ -102,12 +102,15 @@
                   <div class="appointment-name">
                     {{ getAppointment(day.date, time)?.clientName }}
                   </div>
+                  <div class="appointment-session-number">
+                    פגישה מס' {{ getAppointment(day.date, time)?.sessionNumber }}
+                  </div>
                   <div class="appointment-details">
+                    <!-- סטטוס נוכחות -->
                     <v-chip
                       v-if="getAppointment(day.date, time)?.attended"
                       size="x-small"
                       color="success"
-                      class="ms-1"
                     >
                       הגיע
                     </v-chip>
@@ -115,17 +118,17 @@
                       v-if="!getAppointment(day.date, time)?.attended && isAppointmentPast(day.date, time)"
                       size="x-small"
                       color="error"
-                      class="ms-1"
                     >
                       לא הגיע
                     </v-chip>
+
+                    <!-- סטטוס תשלום -->
                     <v-chip
-                      v-if="getAppointment(day.date, time)?.paid"
+                      v-if="getAppointment(day.date, time)?.attended"
                       size="x-small"
-                      color="primary"
-                      class="ms-1"
+                      :color="getPaymentStatusColor(getAppointment(day.date, time))"
                     >
-                      שולם
+                      {{ getPaymentStatusText(getAppointment(day.date, time)) }}
                     </v-chip>
                   </div>
                 </div>
@@ -144,21 +147,35 @@
       <v-card rounded="xl">
         <v-card-title class="pa-6 bg-primary text-white text-right">
           <h3 class="text-h5">
+            <v-icon icon="mdi-calendar-clock" />
             הגדרת תבנית שבועית
-            <v-icon icon="mdi-calendar-clock" class="me-2" />
           </h3>
         </v-card-title>
 
         <v-card-text class="pa-6">
-          <p class="text-subtitle-1 mb-6">
+          <p class="text-subtitle-1 mb-4">
             הגדר את הפגישות הקבועות שלך לכל יום בשבוע. המערכת תמלא אוטומטית כל שבוע חדש.
           </p>
+
+          <v-alert
+            v-if="expectedWeeklyTarget > 0"
+            type="success"
+            variant="tonal"
+            class="mb-6"
+          >
+            <div class="text-body-1">
+              <strong>יעד שבועי צפוי מתבנית זו:</strong> ₪{{ expectedWeeklyTarget.toLocaleString() }}
+            </div>
+            <div class="text-body-2 mt-1 text-medium-emphasis">
+              יעד זה יחושב אוטומטית כאשר תמלא את השבוע מהתבנית
+            </div>
+          </v-alert>
 
           <v-expansion-panels>
             <v-expansion-panel v-for="day in hebrewDays" :key="day.index" class="template-panel">
               <v-expansion-panel-title class="day-panel-title">
                 <div class="d-flex align-center flex-grow-1">
-                  <v-icon :icon="day.icon" class="ms-3" color="primary" />
+                  <v-icon :icon="day.icon" color="primary" />
                   <span class="day-name-template">{{ day.name }}</span>
                 </div>
                 <v-chip size="small" color="primary" variant="flat">
@@ -174,7 +191,7 @@
                   variant="flat"
                   @click="addTemplateSlot(day.index)"
                 >
-                  <v-icon icon="mdi-plus" size="small" class="ms-2" />
+                  <v-icon icon="mdi-plus" size="small" />
                   הוסף שעה
                 </v-btn>
 
@@ -225,17 +242,29 @@
         </v-card-text>
 
         <v-card-actions class="pa-6 pt-0">
+          <v-spacer />
+          <v-btn
+            variant="outlined"
+            rounded="xl"
+            size="large"
+            @click="showTemplateDialog = false"
+            class="px-6"
+          >
+            ביטול
+          </v-btn>
           <v-btn
             color="primary"
             rounded="xl"
+            variant="elevated"
+            size="large"
+            elevation="2"
             :loading="savingTemplate"
             @click="saveTemplate"
+            class="px-8"
           >
-            <v-icon icon="mdi-content-save" class="ms-2" />
-            שמור תבנית
+            <v-icon icon="mdi-check" />
+            שמור
           </v-btn>
-          <v-btn variant="text" @click="showTemplateDialog = false">סגור</v-btn>
-          <v-spacer />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -248,7 +277,7 @@
     >
       <v-card rounded="xl">
         <v-card-title class="pa-5 text-right section-header-clean">
-          <v-icon icon="mdi-calendar-edit-outline" size="24" class="ms-2" style="opacity: 0.8;" />
+          <v-icon icon="mdi-calendar-edit-outline" size="24" style="opacity: 0.8;" />
           <span class="text-h6">{{ selectedAppointment ? 'עריכת פגישה' : 'פגישה חדשה' }}</span>
         </v-card-title>
 
@@ -257,7 +286,7 @@
             <!-- שלב 1: יצירת פגישה -->
             <div class="form-section">
               <h4 class="text-subtitle-1 font-weight-bold mb-4" style="color: #1976D2;">
-                <v-icon icon="mdi-information" size="small" class="ms-1" />
+                <v-icon icon="mdi-information" size="small" />
                 פרטי פגישה
               </h4>
 
@@ -355,7 +384,7 @@
               <v-divider class="mb-4" />
 
               <h4 class="text-subtitle-1 font-weight-bold mb-4" style="color: #1976D2;">
-                <v-icon icon="mdi-clipboard-check" size="small" class="ms-1" />
+                <v-icon icon="mdi-clipboard-check" size="small" />
                 סטטוס פגישה
               </h4>
 
@@ -367,14 +396,14 @@
                 class="mb-4"
               >
                 <template #prepend>
-                  <v-icon icon="mdi-account-check" color="success" class="ms-2" />
+                  <v-icon icon="mdi-account-check" color="success" />
                 </template>
               </v-switch>
 
               <v-divider class="my-4" />
 
               <h4 class="text-subtitle-1 font-weight-bold mb-4" style="color: #1976D2;">
-                <v-icon icon="mdi-cash-check" size="small" class="ms-1" />
+                <v-icon icon="mdi-cash-check" size="small" />
                 תשלומים
               </h4>
 
@@ -404,7 +433,7 @@
               <!-- רשימת תשלומים קיימים -->
               <div v-if="payments.length > 0" class="mb-4">
                 <h5 class="text-subtitle-2 font-weight-bold mb-3" style="color: #546e7a;">
-                  <v-icon icon="mdi-history" size="20" class="ms-1" />
+                  <v-icon icon="mdi-history" size="20" />
                   תשלומים שבוצעו:
                 </h5>
                 <v-card
@@ -456,7 +485,7 @@
                   @click="showAddPaymentForm = true"
                   class="add-payment-btn"
                 >
-                  <v-icon icon="mdi-plus-circle-outline" size="20" class="ms-2" />
+                  <v-icon icon="mdi-plus-circle-outline" size="20" />
                   הוסף תשלום
                 </v-btn>
               </div>
@@ -520,7 +549,7 @@
                         @click="addPayment"
                         :disabled="!newPayment.amount || newPayment.amount <= 0"
                       >
-                        <v-icon icon="mdi-check" size="18" class="ms-2" />
+                        <v-icon icon="mdi-check" size="18" />
                         הוסף
                       </v-btn>
                       <v-btn
@@ -541,17 +570,18 @@
 
         <v-card-actions class="pa-6 pt-0 d-flex">
           <v-btn
-            color="blue-grey-darken-2"
+            v-if="selectedAppointment"
+            color="error"
             rounded="xl"
+            variant="outlined"
             size="large"
-            variant="flat"
-            :loading="savingAppointment"
-            @click="saveAppointment"
-            class="px-8"
+            @click="confirmDeleteAppointment"
+            class="px-6"
           >
-            <v-icon icon="mdi-content-save-outline" size="18" class="ms-2" />
-            שמור
+            <v-icon icon="mdi-delete" />
+            מחק
           </v-btn>
+          <v-spacer />
           <v-btn
             variant="outlined"
             rounded="xl"
@@ -561,17 +591,18 @@
           >
             ביטול
           </v-btn>
-          <v-spacer />
           <v-btn
-            v-if="selectedAppointment"
-            color="red-lighten-3"
-            variant="outlined"
+            color="primary"
             rounded="xl"
-            @click="confirmDeleteAppointment"
-            class="px-6"
+            variant="elevated"
+            size="large"
+            elevation="2"
+            :loading="savingAppointment"
+            @click="saveAppointment"
+            class="px-8"
           >
-            מחק
-            <v-icon icon="mdi-delete-outline" size="18" class="me-2" />
+            <v-icon icon="mdi-check" />
+            שמור
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -683,6 +714,19 @@ const clientOptions = computed(() => clients.value)
 
 const hasTemplate = computed(() => templateSlots.value.length > 0)
 
+const expectedWeeklyTarget = computed(() => {
+  let total = 0
+  templateSlots.value.forEach(slot => {
+    if (slot.defaultClientId) {
+      const client = clients.value.find(c => c.id === slot.defaultClientId)
+      if (client) {
+        total += client.pricePerSession
+      }
+    }
+  })
+  return total
+})
+
 const isWeekFilledFromTemplate = computed(() => {
   if (!hasTemplate.value) return false
 
@@ -742,16 +786,16 @@ const currentWeekDisplay = computed(() => {
   const end = new Date(currentWeekStart.value)
   end.setDate(end.getDate() + 6)
 
-  const startYear = start.getFullYear()
-  const endYear = end.getFullYear()
-
-  // אם השנים שונות (למשל 31.12.2025 - 06.01.2026)
-  if (startYear !== endYear) {
-    return `${formatDate(start)} ${startYear} - ${formatDate(end)} ${endYear}`
+  // פורמט: DD/MM/YYYY
+  const formatDateWithYear = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
   }
 
-  // אם באותה שנה
-  return `${formatDate(start)} - ${formatDate(end)}, ${startYear}`
+  // מתחילה לסוף (14/12/2025-20/12/2025)
+  return `${formatDateWithYear(start)}-${formatDateWithYear(end)}`
 })
 
 // Helper Functions
@@ -815,6 +859,48 @@ function isAppointmentPast(date: Date, time: string): boolean {
   aptDate.setHours(hours, minutes, 0, 0)
 
   return aptDate < now
+}
+
+function getTotalPaid(appointment: Appointment | null | undefined): number {
+  if (!appointment) return 0
+
+  let total = 0
+  if (appointment.payments && Array.isArray(appointment.payments)) {
+    appointment.payments.forEach(payment => {
+      total += payment.amount || 0
+    })
+  }
+  return total
+}
+
+function getPaymentStatusText(appointment: Appointment | null | undefined): string {
+  if (!appointment) return ''
+
+  const totalPaid = getTotalPaid(appointment)
+  const price = appointment.price || 0
+
+  if (totalPaid === 0) {
+    return 'לא שילם'
+  } else if (totalPaid >= price) {
+    return 'שולם'
+  } else {
+    return `שולם חלקית (₪${totalPaid})`
+  }
+}
+
+function getPaymentStatusColor(appointment: Appointment | null | undefined): string {
+  if (!appointment) return 'grey'
+
+  const totalPaid = getTotalPaid(appointment)
+  const price = appointment.price || 0
+
+  if (totalPaid === 0) {
+    return 'error'
+  } else if (totalPaid >= price) {
+    return 'success'
+  } else {
+    return 'warning'
+  }
 }
 
 // Methods
@@ -890,6 +976,9 @@ const loadAppointments = async () => {
     })
 
     console.log('✅ Loaded', appointments.value.length, 'appointments for week:', weekStart.toDateString())
+
+    // Auto-update weekly target when appointments are loaded
+    await updateWeeklyTargetFromAppointments()
   } catch (error) {
     console.error('Error loading appointments:', error)
     showSnackbar('שגיאה בטעינת פגישות', 'error')
@@ -990,17 +1079,37 @@ const fillWeekFromTemplate = async () => {
   try {
     let addedCount = 0
 
+    // Pre-calculate session numbers for each client
+    const clientSessionCounts: Record<string, number> = {}
+
     for (const day of daysOfWeek.value) {
       const daySlots = templateSlots.value.filter(s => s.dayOfWeek === day.index)
 
       for (const slot of daySlots) {
         // Check if appointment already exists
         const existing = getAppointment(day.date, slot.time)
-        if (existing) continue
+        if (existing) {
+          continue
+        }
 
         if (slot.defaultClientId) {
           const client = clients.value.find(c => c.id === slot.defaultClientId)
           if (client) {
+            // Calculate session number for this client
+            if (!clientSessionCounts[client.id]) {
+              // First time seeing this client - count existing appointments
+              const clientAppointmentsQuery = query(
+                collection(db, 'appointments'),
+                where('clientId', '==', client.id)
+              )
+              const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
+              clientSessionCounts[client.id] = clientAppointmentsSnapshot.size
+            }
+
+            // Increment for this new appointment
+            clientSessionCounts[client.id]++
+            const sessionNumber = clientSessionCounts[client.id]
+
             // Create date at midnight
             const appointmentDate = new Date(day.date)
             appointmentDate.setHours(0, 0, 0, 0)
@@ -1014,7 +1123,7 @@ const fillWeekFromTemplate = async () => {
               attended: false,
               paid: false,
               payments: [],
-              sessionNumber: client.totalSessions + 1,
+              sessionNumber: sessionNumber,
               notes: ''
             }
 
@@ -1025,16 +1134,81 @@ const fillWeekFromTemplate = async () => {
       }
     }
 
-    if (addedCount > 0) {
-      showSnackbar(`נוספו ${addedCount} פגישות בהצלחה`, 'success')
-    } else {
-      showSnackbar('כל הפגישות כבר קיימות', 'info')
-    }
-
+    // Reload appointments to get updated list
     await loadAppointments()
+
+    // Calculate target from ALL appointments this week (not just template)
+    let totalWeeklyTarget = 0
+    appointments.value.forEach(appointment => {
+      totalWeeklyTarget += appointment.price || 0
+    })
+
+    // Update or create WeeklyPrize with target
+    await updateWeeklyTarget(totalWeeklyTarget)
+
+    // Show message with target
+    if (addedCount > 0) {
+      showSnackbar(`נוספו ${addedCount} פגישות בהצלחה. יעד שבועי: ₪${totalWeeklyTarget.toLocaleString()}`, 'success')
+    } else {
+      showSnackbar(`כל הפגישות כבר קיימות. יעד שבועי: ₪${totalWeeklyTarget.toLocaleString()}`, 'info')
+    }
   } catch (error) {
     console.error('Error filling week:', error)
     showSnackbar('שגיאה במילוי השבוע: ' + error, 'error')
+  }
+}
+
+const updateWeeklyTarget = async (target: number) => {
+  try {
+    const weekStart = getWeekStart(new Date())
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+
+    // Check if prize exists for this week
+    const q = query(
+      collection(db, 'weekly_prizes'),
+      where('weekStart', '>=', weekStart),
+      where('weekStart', '<', weekEnd)
+    )
+
+    const snapshot = await getDocs(q)
+
+    if (snapshot.empty) {
+      // Create new prize with target
+      await addDoc(collection(db, 'weekly_prizes'), {
+        weekStart: weekStart,
+        prizeText: 'הפתעה מיוחדת! 🎁',
+        weeklyTarget: target,
+        weeklyActual: 0,
+        isUnlocked: false
+      })
+    } else {
+      // Update existing prize
+      const docRef = doc(db, 'weekly_prizes', snapshot.docs[0].id)
+      await updateDoc(docRef, {
+        weeklyTarget: target
+      })
+    }
+  } catch (error) {
+    console.error('Error updating weekly target:', error)
+  }
+}
+
+const updateWeeklyTargetFromAppointments = async () => {
+  try {
+    // Calculate target from ALL appointments in current week
+    let totalWeeklyTarget = 0
+    appointments.value.forEach(appointment => {
+      totalWeeklyTarget += appointment.price || 0
+    })
+
+    // Only update if there are appointments
+    if (totalWeeklyTarget > 0) {
+      await updateWeeklyTarget(totalWeeklyTarget)
+      console.log('✅ Updated weekly target:', totalWeeklyTarget)
+    }
+  } catch (error) {
+    console.error('Error updating weekly target from appointments:', error)
   }
 }
 
@@ -1190,6 +1364,18 @@ const saveAppointment = async () => {
     // Update paid status based on total payments
     appointmentForm.value.paid = isPaidInFull.value
 
+    // Calculate correct session number for new appointments
+    let sessionNumber = selectedAppointment.value?.sessionNumber
+    if (!selectedAppointment.value) {
+      // For new appointments, count ALL existing appointments for this client
+      const clientAppointmentsQuery = query(
+        collection(db, 'appointments'),
+        where('clientId', '==', appointmentForm.value.clientId)
+      )
+      const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
+      sessionNumber = clientAppointmentsSnapshot.size + 1
+    }
+
     const appointmentData = {
       clientId: appointmentForm.value.clientId,
       clientName: client.name,
@@ -1205,7 +1391,7 @@ const saveAppointment = async () => {
         date: p.date,
         notes: p.notes
       })),
-      sessionNumber: selectedAppointment.value?.sessionNumber || client.totalSessions + 1,
+      sessionNumber: sessionNumber,
       notes: appointmentForm.value.notes || ''
     }
 
@@ -1217,21 +1403,65 @@ const saveAppointment = async () => {
       showSnackbar('הפגישה נוספה בהצלחה', 'success')
     }
 
-    // Update client balance
+    // Update client balance and session count (only if attended)
     const balanceChange = totalPaid.value - appointmentForm.value.price
-    await updateDoc(doc(db, 'clients', client.id), {
-      totalSessions: selectedAppointment.value ? client.totalSessions : client.totalSessions + 1,
+    const updateData: any = {
       balance: client.balance + balanceChange
-    })
+    }
+
+    // Update totalSessions only when marking as attended for the first time
+    if (appointmentForm.value.attended && !selectedAppointment.value?.attended) {
+      updateData.totalSessions = client.totalSessions + 1
+    }
+
+    await updateDoc(doc(db, 'clients', client.id), updateData)
 
     await loadAppointments()
     await loadClients() // Reload to see updated balance
+    await updateWeeklyPrizeActual() // Update weekly prize actual amount
     closeAppointmentDialog()
   } catch (error) {
     console.error('Error saving appointment:', error)
     showSnackbar('שגיאה בשמירת הפגישה: ' + error, 'error')
   } finally {
     savingAppointment.value = false
+  }
+}
+
+const updateWeeklyPrizeActual = async () => {
+  try {
+    const weekStart = getWeekStart(new Date())
+    weekStart.setHours(0, 0, 0, 0)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+
+    // Get current week's prize
+    const prizeQuery = query(
+      collection(db, 'weekly_prizes'),
+      where('weekStart', '>=', weekStart),
+      where('weekStart', '<', weekEnd)
+    )
+    const prizeSnapshot = await getDocs(prizeQuery)
+
+    if (prizeSnapshot.empty) return
+
+    // Calculate total paid this week
+    let totalPaid = 0
+    appointments.value.forEach(appointment => {
+      if (appointment.payments && Array.isArray(appointment.payments)) {
+        appointment.payments.forEach(payment => {
+          totalPaid += payment.amount || 0
+        })
+      }
+    })
+
+    // Update prize with actual amount
+    const prizeDoc = prizeSnapshot.docs[0]
+    await updateDoc(doc(db, 'weekly_prizes', prizeDoc.id), {
+      weeklyActual: totalPaid
+    })
+  } catch (error) {
+    console.error('Error updating weekly prize actual:', error)
   }
 }
 
@@ -1403,8 +1633,16 @@ onMounted(() => {
 .appointment-name {
   font-weight: 700;
   font-size: 0.95rem;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: #1e3a5f;
+}
+
+.appointment-session-number {
+  font-size: 0.75rem;
+  color: #607D8B;
+  margin-bottom: 8px;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 .appointment-details {

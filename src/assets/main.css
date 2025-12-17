@@ -4,6 +4,25 @@
   font-weight: normal;
 }
 
+/* RTL Icon Spacing - הוסף רווח אוטומטי לאייקונים */
+/* Icons in buttons and tabs */
+.v-btn .v-icon,
+.v-tab .v-icon {
+  margin-inline-start: 0.375rem;
+  margin-inline-end: 0.375rem;
+}
+
+/* Icons in headings */
+h1 .v-icon,
+h2 .v-icon,
+h3 .v-icon,
+h4 .v-icon,
+h5 .v-icon,
+.v-card-title .v-icon {
+  margin-inline-start: 0.5rem;
+  margin-inline-end: 0.5rem;
+}
+
 /* Global Button Enhancements */
 .v-btn {
   text-transform: none !important;

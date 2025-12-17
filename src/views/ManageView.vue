@@ -60,13 +60,13 @@
       <!-- Top App Bar -->
       <v-app-bar color="blue-grey-lighten-5" elevation="1" height="80">
         <v-container class="d-flex align-center">
-          <v-btn icon="mdi-logout-variant" variant="text" @click="handleLogout" class="ms-2" style="color: #546E7A;" />
-          <v-spacer />
-          <div class="text-right">
+          <v-icon icon="mdi-clipboard-text-outline" size="40" style="color: #78909C;" />
+          <div>
             <h1 class="text-h5" style="color: #37474F; font-weight: 600;">מערכת ניהול סולתרפיה</h1>
             <p class="text-caption" style="color: #78909C;">ברוך הבא, משה יצחק</p>
           </div>
-          <v-icon icon="mdi-clipboard-text-outline" size="40" class="me-4" style="color: #78909C;" />
+          <v-spacer />
+          <v-btn icon="mdi-logout-variant" variant="text" @click="handleLogout" style="color: #546E7A;" />
         </v-container>
       </v-app-bar>
 
@@ -81,19 +81,19 @@
         slider-color="blue-grey-darken-2"
       >
         <v-tab value="dashboard" class="tab-clean">
-          <v-icon icon="mdi-view-dashboard-outline" size="20" class="ms-2" />
+          <v-icon icon="mdi-view-dashboard-outline" size="20" />
           דשבורד
         </v-tab>
         <v-tab value="clients" class="tab-clean">
-          <v-icon icon="mdi-account-group-outline" size="20" class="ms-2" />
+          <v-icon icon="mdi-account-group-outline" size="20" />
           לקוחות
         </v-tab>
         <v-tab value="schedule" class="tab-clean">
-          <v-icon icon="mdi-calendar-month-outline" size="20" class="ms-2" />
+          <v-icon icon="mdi-calendar-month-outline" size="20" />
           יומן שבועי
         </v-tab>
         <v-tab value="prize" class="tab-clean">
-          <v-icon icon="mdi-gift-outline" size="20" class="ms-2" />
+          <v-icon icon="mdi-gift-outline" size="20" />
           הפרס השבועי
         </v-tab>
       </v-tabs>

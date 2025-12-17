@@ -4,7 +4,7 @@
     <v-row class="mb-8">
       <v-col cols="12" class="text-right">
         <h2 class="text-h4 font-weight-bold mb-2">
-          <v-icon icon="mdi-view-dashboard" size="32" class="me-2" color="primary" />
+          <v-icon icon="mdi-view-dashboard" size="32" color="primary" />
           דשבורד
         </h2>
         <p class="text-subtitle-1 text-medium-emphasis">
@@ -111,7 +111,7 @@
       <v-col cols="12" lg="7">
         <v-card rounded="xl" elevation="2" class="section-card-clean">
           <v-card-title class="pa-5 text-right section-header-clean">
-            <v-icon icon="mdi-calendar-today" size="24" class="ms-2" style="opacity: 0.8;" />
+            <v-icon icon="mdi-calendar-today" size="24" style="opacity: 0.8;" />
             <span class="text-h6">פגישות היום</span>
           </v-card-title>
 
@@ -135,10 +135,10 @@
                 </v-list-item-title>
 
                 <v-list-item-subtitle class="text-right">
-                  <v-chip v-if="appointment.attended" size="small" color="primary" class="ms-2">
+                  <v-chip v-if="appointment.attended" size="small" color="primary">
                     הגיע
                   </v-chip>
-                  <v-chip v-if="appointment.paid" size="small" color="success" class="ms-2">
+                  <v-chip v-if="appointment.paid" size="small" color="success">
                     שולם
                   </v-chip>
                   ₪{{ appointment.price }}
@@ -167,7 +167,7 @@
       <v-col cols="12" lg="5">
         <v-card rounded="xl" elevation="2" class="section-card-clean">
           <v-card-title class="pa-5 text-right section-header-clean">
-            <v-icon icon="mdi-alert-circle-outline" size="24" class="ms-2" style="opacity: 0.8;" />
+            <v-icon icon="mdi-alert-circle-outline" size="24" style="opacity: 0.8;" />
             <span class="text-h6">חובות ללקוחות</span>
           </v-card-title>
 
@@ -199,7 +199,7 @@
         <!-- Quick Actions -->
         <v-card rounded="xl" elevation="2" class="mt-4 section-card-clean">
           <v-card-title class="pa-5 text-right section-header-clean">
-            <v-icon icon="mdi-lightning-bolt-outline" size="24" class="ms-2" style="opacity: 0.8;" />
+            <v-icon icon="mdi-lightning-bolt-outline" size="24" style="opacity: 0.8;" />
             <span class="text-h6">פעולות מהירות</span>
           </v-card-title>
 
@@ -248,7 +248,7 @@
       <v-col cols="12">
         <v-card rounded="xl" elevation="2" class="section-card-clean">
           <v-card-title class="pa-5 text-right section-header-clean">
-            <v-icon icon="mdi-chart-line" size="24" class="ms-2" style="opacity: 0.8;" />
+            <v-icon icon="mdi-chart-line" size="24" style="opacity: 0.8;" />
             <span class="text-h6">סיכום חודשי</span>
           </v-card-title>
 

@@ -127,7 +127,7 @@
           <v-card class="contact-info-card" elevation="0">
             <v-card-text class="pa-8" >
               <h2 class="info-title mb-8">
-                  <v-icon icon="mdi-information-outline" size="small" color="primary" class="me-2" />
+                  <v-icon icon="mdi-information-outline" size="small" color="primary" />
                   פרטי התקשרות
               </h2>
 
@@ -218,13 +218,13 @@
               <v-expansion-panel v-for="(faq, index) in faqs" :key="faq.question" class="faq-panel">
                 <v-expansion-panel-title class="faq-question">
                   <div class="faq-title-content">
-                    <span>{{ faq.question }}</span>
                     <div class="faq-number">{{ index + 1 }}</div>
+                    <span>{{ faq.question }}</span>
                   </div>
                 </v-expansion-panel-title>
                 <v-expansion-panel-text class="faq-answer">
                   <div class="faq-answer-content">
-                    <v-icon icon="mdi-check-circle" color="primary" size="small" class="me-2" />
+                    <v-icon icon="mdi-check-circle" color="primary" size="small" />
                     {{ faq.answer }}
                   </div>
                 </v-expansion-panel-text>

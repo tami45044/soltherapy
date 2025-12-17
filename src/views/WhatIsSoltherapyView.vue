@@ -83,7 +83,7 @@
                 ולגלות שהמקומות שהפחידו אותנו – הם בדיוק המקומות שבהם מתרחשת הלמידה.
               </p>
               <div class="pillar-highlight mt-auto">
-                <v-icon icon="mdi-lightbulb-on" size="20" class="me-2" color="primary" />
+                <v-icon icon="mdi-lightbulb-on" size="20" color="primary" />
                 <span>זהו תיקון קדום: להשיב את הסקרנות למקומה הטבעי, במקום שבו הפחד השתלט על ההגה.</span>
               </div>
             </v-card-text>
@@ -117,7 +117,7 @@
                 מגע ישיר עם החיים.
               </p>
               <div class="pillar-highlight mt-auto">
-                <v-icon icon="mdi-lightbulb-on" size="20" class="me-2" color="primary" />
+                <v-icon icon="mdi-lightbulb-on" size="20" color="primary" />
                 <span>שיעור שמתרחש גם בשקט, גם בשעמום, גם בכישלון – כי כל רגע שבו אני מתעניין, הוא רגע שבו אני חי.</span>
               </div>
             </v-card-text>
@@ -150,7 +150,7 @@
                 נולדת חמלה.
               </p>
               <div class="pillar-highlight mt-auto">
-                <v-icon icon="mdi-lightbulb-on" size="20" class="me-2" color="primary" />
+                <v-icon icon="mdi-lightbulb-on" size="20" color="primary" />
                 <span>חמלה שמחזירה אליי את הערך, ומחזירה לעולם את האנושיות שאבדה לו בשגרה האדישה.</span>
               </div>
             </v-card-text>
@@ -207,7 +207,7 @@
 
               <div class="benefits-grid">
                 <div v-for="benefit in benefits" :key="benefit" class="benefit-item">
-                  <v-icon icon="mdi-checkbox-marked-circle" size="24" color="white" class="me-3" />
+                  <v-icon icon="mdi-checkbox-marked-circle" size="24" color="white" />
                   <span>{{ benefit }}</span>
                 </div>
               </div>

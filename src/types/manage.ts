@@ -2,7 +2,8 @@
 export interface Client {
   id: string
   name: string
-  phone: string
+  phone?: string
+  email?: string
   pricePerSession: number // 350, 400, or 500
   totalSessions: number
   balance: number // חוב או זכות (שלילי = חוב, חיובי = זכות)
@@ -60,8 +61,8 @@ export interface WeeklyPrize {
   id: string
   weekStart: Date // תאריך תחילת השבוע
   prizeText: string
-  requiredDays: number // כמה ימים צריך לעדכן
-  daysCompleted: string[] // תאריכים שעודכנו
+  weeklyTarget: number // יעד הכנסה שבועי (מחושב מהתבנית)
+  weeklyActual: number // סכום בפועל ששולם השבוע
   isUnlocked: boolean
   unlockedAt?: Date
 }

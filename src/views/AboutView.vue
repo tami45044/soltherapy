@@ -37,11 +37,11 @@
           </div>
           <h2 class="therapist-name mt-6">
             משה יצחק שידלובסקי
-            <v-icon icon="mdi-account-circle" size="small" class="ms-2" color="primary" />
+            <v-icon icon="mdi-account-circle" size="small" color="primary" />
           </h2>
           <p class="therapist-title">
             מרצה, יועץ ומטפל רב תחומי. יוצר גישת סולתרפיה - סקרנות ולמידה
-            <v-icon icon="mdi-medal" size="small" class="ms-1" />
+            <v-icon icon="mdi-medal" size="small" />
           </p>
         </v-col>
 
@@ -462,7 +462,6 @@ const values = [
   margin-bottom: 16px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
 }
 
 .content-text {

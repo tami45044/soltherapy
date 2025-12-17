@@ -62,8 +62,8 @@
                 >
                   <v-card-text class="pa-5">
                     <div class="story-item-content">
-                      <span class="story-text-styled">{{ story }}</span>
                       <v-icon icon="mdi-account-voice" size="24" color="primary" class="story-icon" />
+                      <span class="story-text-styled">{{ story }}</span>
                     </div>
                   </v-card-text>
                 </v-card>

@@ -169,7 +169,7 @@
                 </v-btn>
 
                 <p v-else class="text-body-1 text-medium-emphasis">
-                  {{ targetReached 
+                  {{ targetReached
                     ? 'פתיחת המתנה תהיה זמינה במוצאי שבת (שבת אחרי 20:00 או ביום ראשון) 🎁'
                     : 'המשך לעדכן תשלומים כדי להגיע ליעד השבועי! 💪'
                   }}

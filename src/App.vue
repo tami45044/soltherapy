@@ -1,5 +1,5 @@
 <template>
-  <v-app dir="rtl">
+  <v-app>
     <navbar />
     <v-main>
       <router-view v-slot="{ Component }">

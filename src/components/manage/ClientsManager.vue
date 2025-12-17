@@ -1,28 +1,29 @@
 <template>
   <v-container fluid class="clients-container">
     <!-- Header -->
-    <v-row class="mb-4" dir="rtl">
-      <v-col cols="12" md="8">
-        <h2 class="text-h4 mb-2">ניהול לקוחות</h2>
-        <p class="text-subtitle-1 text-medium-emphasis">סה"כ {{ clients.length }} לקוחות במערכת</p>
-      </v-col>
-      <v-col cols="12" md="4" class="text-right">
+    <v-row class="mb-4 align-center">
+      <v-col cols="12" class="d-flex justify-space-between align-center">
+        <div class="text-right">
+          <h2 class="text-h4 mb-2" style="color: #1e3a5f;">ניהול לקוחות</h2>
+          <p class="text-subtitle-1 text-medium-emphasis">סה"כ {{ clients.length }} לקוחות במערכת</p>
+        </div>
         <v-btn
           color="primary"
           size="large"
           rounded="xl"
           elevation="4"
           @click="openAddDialog"
+          class="flex-shrink-0"
         >
-          <v-icon icon="mdi-plus" class="ms-2" />
+          <v-icon icon="mdi-plus" size="20" class="ms-2" />
           לקוח חדש
         </v-btn>
       </v-col>
     </v-row>
 
     <!-- Search & Filters -->
-    <v-card class="mb-4" rounded="xl" elevation="2">
-      <v-card-text>
+    <v-card class="mb-4 filters-card" rounded="xl" elevation="2">
+      <v-card-text class="pa-4">
         <v-row>
           <v-col cols="12" md="6">
             <v-text-field
@@ -31,8 +32,9 @@
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               clearable
+              hide-details
+              class=""
             />
           </v-col>
           <v-col cols="12" md="3">
@@ -42,8 +44,9 @@
               :items="priceOptions"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               clearable
+              hide-details
+              class=""
             />
           </v-col>
           <v-col cols="12" md="3">
@@ -53,7 +56,8 @@
               :items="sortOptions"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
+              hide-details
+              class=""
             />
           </v-col>
         </v-row>
@@ -68,8 +72,9 @@
         cols="12"
         md="6"
         lg="4"
+        class="client-col"
       >
-        <v-card class="client-card" rounded="xl" elevation="3" hover dir="rtl">
+        <v-card class="client-card" rounded="xl" elevation="3" hover>
           <v-card-text class="pa-5">
             <div class="d-flex justify-space-between align-start mb-4">
               <div class="text-right flex-grow-1">
@@ -84,15 +89,15 @@
               </div>
               <v-menu location="start">
                 <template #activator="{ props }">
-                  <v-btn 
-                    icon="mdi-dots-vertical" 
-                    size="small" 
-                    variant="text" 
+                  <v-btn
+                    icon="mdi-dots-vertical"
+                    size="small"
+                    variant="text"
                     v-bind="props"
                     color="primary"
                   />
                 </template>
-                <v-list dir="rtl" density="compact" rounded="lg">
+                <v-list density="compact" rounded="lg">
                   <v-list-item @click="openEditDialog(client)" class="hover-item">
                     <template #prepend>
                       <v-icon icon="mdi-pencil" size="small" color="primary" />
@@ -115,8 +120,8 @@
               <div class="detail-row">
                 <v-icon icon="mdi-cash-multiple" size="small" color="primary" class="ms-1" />
                 <span class="detail-label">מחיר פגישה:</span>
-                <v-chip 
-                  :color="getPriceColor(client.pricePerSession)" 
+                <v-chip
+                  :color="getPriceColor(client.pricePerSession)"
                   size="small"
                   variant="flat"
                   class="font-weight-bold"
@@ -132,11 +137,11 @@
                 </span>
               </div>
               <div class="detail-row">
-                <v-icon 
-                  :icon="client.balance < 0 ? 'mdi-alert-circle' : 'mdi-check-circle'" 
-                  size="small" 
-                  :color="client.balance < 0 ? 'error' : 'success'" 
-                  class="ms-1" 
+                <v-icon
+                  :icon="client.balance < 0 ? 'mdi-alert-circle' : 'mdi-check-circle'"
+                  size="small"
+                  :color="client.balance < 0 ? 'error' : 'success'"
+                  class="ms-1"
                 />
                 <span class="detail-label">יתרה:</span>
                 <v-chip
@@ -183,13 +188,11 @@
     </v-row>
 
     <!-- Add/Edit Dialog -->
-    <v-dialog v-model="showDialog" max-width="600" persistent>
-      <v-card rounded="xl" dir="rtl">
-        <v-card-title class="pa-6 bg-primary text-white text-right">
-          <h3 class="text-h5">
-            {{ editMode ? 'עריכת לקוח' : 'לקוח חדש' }}
-            <v-icon icon="mdi-account-plus" class="me-2" />
-          </h3>
+    <v-dialog v-model="showDialog" max-width="600" @click:outside="closeDialog">
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right section-header-clean">
+          <v-icon icon="mdi-account-plus-outline" size="24" class="ms-2" style="opacity: 0.8;" />
+          <span class="text-h6">{{ editMode ? 'עריכת לקוח' : 'לקוח חדש' }}</span>
         </v-card-title>
 
         <v-card-text class="pa-6">
@@ -197,10 +200,9 @@
             <v-text-field
               v-model="formData.name"
               label="שם מלא *"
-              prepend-inner-icon="mdi-account"
+              prepend-inner-icon="mdi-account-outline"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               :rules="[rules.required]"
               class="mb-4"
             />
@@ -208,10 +210,9 @@
             <v-text-field
               v-model="formData.phone"
               label="טלפון *"
-              prepend-inner-icon="mdi-phone"
+              prepend-inner-icon="mdi-phone-outline"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               :rules="[rules.required, rules.phone]"
               class="mb-4"
             />
@@ -220,17 +221,16 @@
               v-model="formData.pricePerSession"
               label="מחיר פגישה *"
               :items="[350, 400, 500]"
-              prepend-inner-icon="mdi-currency-ils"
+              prepend-inner-icon="mdi-cash"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               :rules="[rules.required]"
               class="mb-4"
             >
               <template #item="{ props, item }">
                 <v-list-item v-bind="props">
                   <template #append>
-                    <v-chip size="small" :color="getPriceColor(item.value)">
+                    <v-chip size="small" color="blue-grey-lighten-3">
                       ₪{{ item.value }}
                     </v-chip>
                   </template>
@@ -241,28 +241,34 @@
             <v-textarea
               v-model="formData.notes"
               label="הערות"
-              prepend-inner-icon="mdi-note-text"
+              prepend-inner-icon="mdi-note-text-outline"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               rows="3"
+              class=""
             />
           </v-form>
         </v-card-text>
 
-        <v-card-actions class="pa-6 pt-0">
+        <v-card-actions class="pa-6 pt-0 d-flex justify-start">
           <v-btn
-            color="primary"
+            color="blue-grey-darken-2"
             rounded="xl"
+            variant="flat"
+            size="large"
             :loading="saving"
             @click="saveClient"
+            class="px-6"
           >
-            <v-icon icon="mdi-content-save" class="ms-2" />
+            <v-icon icon="mdi-content-save-outline" size="18" class="ms-2" />
             שמירה
           </v-btn>
           <v-btn
-            variant="text"
+            variant="outlined"
+            rounded="xl"
+            size="large"
             @click="closeDialog"
+            class="px-6"
           >
             ביטול
           </v-btn>
@@ -273,7 +279,7 @@
 
     <!-- Delete Confirmation Dialog -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card rounded="xl" dir="rtl">
+      <v-card rounded="xl">
         <v-card-title class="pa-6 text-right">
           אישור מחיקה
           <v-icon icon="mdi-alert" color="error" class="me-2" />
@@ -520,22 +526,26 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap');
+
 .clients-container {
   max-width: 1400px;
   margin: 0 auto;
   color: #1e3a5f;
+  font-family: 'Open Sans', 'Heebo', sans-serif;
 }
 
 .clients-container h2,
 .clients-container h3,
 .clients-container p {
   color: #1e3a5f;
+  font-family: 'Open Sans', 'Heebo', sans-serif;
 }
 
 .client-card {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(25, 118, 210, 0.12);
-  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  border: 1px solid #E0E0E0;
+  background: #ffffff;
   position: relative;
   overflow: hidden;
 }
@@ -546,21 +556,13 @@ onMounted(() => {
   top: 0;
   right: 0;
   width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #1976D2 0%, #64B5F6 100%);
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform 0.4s ease;
-}
-
-.client-card:hover::before {
-  transform: scaleX(1);
+  height: 3px;
+  background: #B0BEC5;
 }
 
 .client-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 0 12px 24px rgba(25, 118, 210, 0.15) !important;
-  border-color: rgba(25, 118, 210, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border-color: #B0BEC5;
 }
 
 .client-details {

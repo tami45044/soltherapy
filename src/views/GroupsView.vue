@@ -601,8 +601,6 @@ const sessions = [
 .stories-card {
   background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%);
   border: 2px solid #E3F2FD;
-  text-align: right;
-  direction: rtl;
 }
 
 .story-intro,
@@ -636,9 +634,6 @@ const sessions = [
   gap: 8px;
   align-items: flex-start;
   padding: 8px 12px;
-  flex-direction: row-reverse;
-  text-align: right;
-  direction: rtl;
 }
 
 .story-item-card {
@@ -657,9 +652,6 @@ const sessions = [
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  flex-direction: row-reverse;
-  text-align: right;
-  direction: rtl;
 }
 
 .story-icon {
@@ -672,8 +664,6 @@ const sessions = [
   font-size: 1.0625rem;
   line-height: 1.8;
   color: rgba(0, 0, 0, 0.87);
-  text-align: right;
-  direction: rtl;
 }
 
 .details-section {
@@ -684,8 +674,6 @@ const sessions = [
   background: white;
   border: 1px solid #E3F2FD;
   transition: all 0.4s ease;
-  text-align: right;
-  direction: rtl;
 }
 
 .detail-card:hover {
@@ -722,8 +710,6 @@ const sessions = [
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  text-align: right;
-  direction: rtl;
 }
 
 .session-card:hover {
@@ -771,7 +757,6 @@ const sessions = [
   font-weight: 700;
   color: #0D47A1;
   padding-right: 80px;
-  text-align: right;
 }
 
 .session-points {
@@ -786,8 +771,6 @@ const sessions = [
   color: rgba(0, 0, 0, 0.8);
   padding: 8px 28px 8px 0;
   position: relative;
-  text-align: right;
-  direction: rtl;
 }
 
 .session-points li::before {

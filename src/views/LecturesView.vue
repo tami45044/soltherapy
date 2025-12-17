@@ -78,7 +78,7 @@
 
     <!-- Videos Grid -->
     <v-container class="pb-16">
-      <v-row class="rtl-grid">
+      <v-row>
         <v-col v-for="video in filteredVideos" :key="video.videoId" cols="12" md="6" lg="4">
           <v-card class="video-card" elevation="3" rounded="lg" height="100%">
             <div class="video-thumbnail" @click="openVideo(video.videoId)">
@@ -266,10 +266,6 @@ function openVideo(videoId: string) {
 </script>
 
 <style scoped>
-.rtl-grid {
-  flex-direction: row-reverse !important;
-}
-
 .lectures-header {
   background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #90CAF9 100%);
   color: #0D47A1;
@@ -562,18 +558,12 @@ function openVideo(videoId: string) {
 }
 
 .video-content {
-  text-align: right;
-  direction: rtl;
 }
 
 .video-card-content {
-  text-align: right;
-  direction: rtl;
 }
 
 .tags-wrapper {
-  text-align: right;
-  direction: rtl;
 }
 
 .video-card-title {
@@ -582,7 +572,6 @@ function openVideo(videoId: string) {
   color: rgb(var(--v-theme-primary));
   line-height: 1.4;
   display: -webkit-box;
-  text-align: right;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -596,8 +585,6 @@ function openVideo(videoId: string) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-align: right;
-  direction: rtl;
 }
 
 .newsletter-section {

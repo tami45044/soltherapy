@@ -32,7 +32,7 @@
         </div>
         <h2 class="section-title">תחומי הליווי</h2>
       </div>
-      <v-row class="rtl-grid">
+      <v-row>
         <v-col v-for="service in services" :key="service.title" cols="12" md="6" lg="4">
           <v-card class="service-card elevated-card" elevation="0" height="100%">
             <div class="card-corner-decoration"></div>
@@ -303,10 +303,6 @@ const faqs = [
 </script>
 
 <style scoped>
-.rtl-grid {
-  flex-direction: row-reverse !important;
-}
-
 .services-header {
   background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #90CAF9 100%);
   color: #0D47A1;
@@ -556,8 +552,6 @@ const faqs = [
 .service-card-content {
   position: relative;
   z-index: 1;
-  text-align: right;
-  direction: rtl;
 }
 
 .service-icon-wrapper {
@@ -620,42 +614,34 @@ const faqs = [
   font-size: 1.5rem;
   font-weight: 600;
   color: #0D47A1;
-  text-align: right;
 }
 
 .service-description {
   font-size: 1rem;
   line-height: 1.8;
   color: #616161;
-  text-align: right;
 }
 
 .includes-title {
   font-size: 1.125rem;
   font-weight: 600;
   color: #0D47A1;
-  text-align: right;
 }
 
 .service-includes {
   padding: 0;
   margin: 0;
   list-style-position: inside;
-  text-align: right;
-  direction: rtl;
 }
 
 .service-includes li {
   font-size: 0.9375rem;
   line-height: 2;
   color: #616161;
-  text-align: right;
   padding-right: 8px;
 }
 
 .tags-wrapper {
-  text-align: right;
-  direction: rtl;
 }
 
 .process-section {
@@ -724,7 +710,6 @@ const faqs = [
 }
 
 .process-row {
-  flex-direction: row-reverse !important;
 }
 
 .section-title {
@@ -824,35 +809,25 @@ const faqs = [
 .faq-question {
   font-size: 1.125rem !important;
   font-weight: 600 !important;
-  text-align: right !important;
-  direction: rtl !important;
   padding: 20px 24px !important;
 }
 
 .faq-question :deep(.v-expansion-panel-title__overlay) {
-  text-align: right !important;
-  direction: rtl !important;
 }
 
 .faq-question :deep(button) {
-  text-align: right !important;
-  direction: rtl !important;
 }
 
 .faq-title-content {
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-direction: row-reverse;
   width: 100%;
-  text-align: right;
   justify-content: flex-start;
 }
 
 .faq-title-content span {
   flex: 1;
-  text-align: right;
-  direction: rtl;
 }
 
 .faq-number {
@@ -874,24 +849,17 @@ const faqs = [
   font-size: 1.0625rem !important;
   line-height: 1.8 !important;
   color: rgba(0, 0, 0, 0.8) !important;
-  text-align: right !important;
-  direction: rtl !important;
   padding: 16px 24px !important;
   background: rgba(227, 242, 253, 0.2) !important;
 }
 
 .faq-answer :deep(.v-expansion-panel-text__wrapper) {
-  text-align: right !important;
-  direction: rtl !important;
 }
 
 .faq-answer-content {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  flex-direction: row-reverse;
-  text-align: right;
-  direction: rtl;
 }
 
 .cta-card {

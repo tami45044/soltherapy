@@ -61,7 +61,7 @@
         </v-col>
 
         <!-- Pillar 1 -->
-        <v-col cols="12" md="4" order="3" order-md="3">
+        <v-col cols="12" md="4">
           <v-card class="pillar-card" height="100%" elevation="0" rounded="xl">
             <div class="card-corner-decoration"></div>
             <v-card-text class="pa-8" style="display: flex; flex-direction: column; height: 100%;">
@@ -92,7 +92,7 @@
         </v-col>
 
         <!-- Pillar 2 -->
-        <v-col cols="12" md="4" order="2" order-md="2">
+        <v-col cols="12" md="4">
           <v-card class="pillar-card" height="100%" elevation="0" rounded="xl">
             <div class="card-corner-decoration"></div>
             <v-card-text class="pa-8" style="display: flex; flex-direction: column; height: 100%;">
@@ -126,7 +126,7 @@
         </v-col>
 
         <!-- Pillar 3 -->
-        <v-col cols="12" md="4" order="1" order-md="1">
+        <v-col cols="12" md="4">
           <v-card class="pillar-card" height="100%" elevation="0" rounded="xl">
             <div class="card-corner-decoration"></div>
             <v-card-text class="pa-8" style="display: flex; flex-direction: column; height: 100%;">
@@ -440,8 +440,6 @@ const benefits = [
 .intro-card {
   background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%);
   border: 2px solid #E3F2FD;
-  text-align: right;
-  direction: rtl;
 }
 
 .intro-text {
@@ -483,8 +481,6 @@ const benefits = [
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  text-align: right;
-  direction: rtl;
 }
 
 .pillar-card:hover {
@@ -686,8 +682,6 @@ const benefits = [
 .benefits-grid {
   display: grid;
   gap: 20px;
-  text-align: right;
-  direction: rtl;
 }
 
 .benefit-item {
@@ -695,8 +689,6 @@ const benefits = [
   align-items: center;
   font-size: clamp(1rem, 2vw, 1.25rem);
   line-height: 1.8;
-  text-align: right;
-  direction: rtl;
 }
 
 .benefits-button {

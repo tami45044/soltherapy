@@ -4,15 +4,6 @@
   font-weight: normal;
 }
 
-html {
-  direction: rtl;
-}
-
-body {
-  direction: rtl;
-  text-align: right;
-}
-
 /* Global Button Enhancements */
 .v-btn {
   text-transform: none !important;

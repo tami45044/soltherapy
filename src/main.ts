@@ -9,6 +9,7 @@ import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import '@mdi/font/css/materialdesignicons.css'
+import { he } from 'vuetify/locale'
 
 import App from './App.vue'
 import router from './router'
@@ -16,6 +17,11 @@ import router from './router'
 const vuetify = createVuetify({
   components,
   directives,
+  rtl: true,
+  locale: {
+    locale: 'he',
+    messages: { he },
+  },
   theme: {
     defaultTheme: 'light',
     themes: {

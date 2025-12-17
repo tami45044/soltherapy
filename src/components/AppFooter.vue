@@ -79,7 +79,6 @@ const footerLinks = [
 }
 
 .footer-row {
-  flex-direction: row-reverse !important;
 }
 
 .footer-logo {
@@ -148,7 +147,6 @@ const footerLinks = [
 .contact-item {
   display: flex;
   align-items: center;
-  flex-direction: row-reverse;
   gap: 8px;
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;

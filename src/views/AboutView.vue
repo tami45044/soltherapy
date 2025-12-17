@@ -25,7 +25,7 @@
 
     <!-- About Content -->
     <v-container class="py-16">
-      <v-row class="rtl-grid">
+      <v-row>
         <v-col cols="12" md="4" class="text-center">
           <div class="about-image-wrapper">
             <div class="image-glow"></div>
@@ -111,7 +111,7 @@
           </div>
           <h2 class="section-title">הערכים שמנחים אותי</h2>
         </div>
-        <v-row class="rtl-grid">
+        <v-row>
           <v-col v-for="value in values" :key="value.title" cols="12" md="6" lg="3">
             <v-card class="value-card elevated-card" elevation="0" height="100%">
               <div class="card-corner-decoration"></div>
@@ -197,10 +197,6 @@ const values = [
 </script>
 
 <style scoped>
-.rtl-grid {
-  flex-direction: row-reverse !important;
-}
-
 .about-header {
   background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #90CAF9 100%);
   color: #0D47A1;
@@ -457,8 +453,6 @@ const values = [
 
 .about-content {
   padding: 0 24px;
-  text-align: right;
-  direction: rtl;
 }
 
 .content-title {
@@ -466,10 +460,8 @@ const values = [
   font-weight: 600;
   color: rgb(var(--v-theme-primary));
   margin-bottom: 16px;
-  text-align: right;
   display: flex;
   align-items: center;
-  flex-direction: row-reverse;
   justify-content: flex-end;
 }
 
@@ -478,8 +470,6 @@ const values = [
   line-height: 1.9;
   color: rgba(0, 0, 0, 0.8);
   margin-bottom: 16px;
-  text-align: right;
-  direction: rtl;
 }
 
 .credentials-grid {
@@ -538,8 +528,6 @@ const values = [
 
 .credential-content {
   flex: 1;
-  text-align: right;
-  direction: rtl;
 }
 
 .credential-text {

@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid dir="rtl">
+  <v-container fluid>
     <!-- Header -->
     <v-row class="mb-6">
       <v-col cols="12" class="text-right">
@@ -139,7 +139,7 @@
     <!-- Admin Settings -->
     <v-row v-if="isAdmin">
       <v-col cols="12" md="8" class="mx-auto">
-        <v-card rounded="xl" elevation="2" dir="rtl">
+        <v-card rounded="xl" elevation="2">
           <v-card-title class="pa-6 bg-grey-lighten-3 text-right">
             הגדרות פרס (מנהל בלבד)
             <v-icon icon="mdi-cog" class="me-2" />
@@ -151,7 +151,6 @@
               label="תיאור הפרס"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               placeholder="לדוגמה: ערב קולנוע, מסאז', ארוחה במסעדה..."
               class="mb-4"
             />
@@ -166,7 +165,6 @@
               tick-size="4"
               thumb-label
               class="mb-4"
-              dir="rtl"
             >
               <template #append>
                 <v-icon icon="mdi-calendar-range" />

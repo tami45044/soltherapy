@@ -29,8 +29,8 @@
         <!-- Contact Form -->
         <v-col cols="12" md="7" class="order-2 order-md-1">
           <v-card class="contact-form-card" elevation="4" rounded="xl">
-            <v-card-text class="pa-8" style="text-align: right; direction: rtl;">
-              <h2 class="form-title mb-6" style="text-align: right;">שלחו לנו הודעה</h2>
+            <v-card-text class="pa-8" >
+              <h2 class="form-title mb-6">שלחו לנו הודעה</h2>
               <v-form ref="form" v-model="valid">
                 <v-row class="form-row">
                   <v-col cols="12" sm="6">
@@ -40,7 +40,6 @@
                       variant="outlined"
                       :rules="[rules.required]"
                       rounded="lg"
-                      dir="rtl"
                     />
                   </v-col>
                   <v-col cols="12" sm="6">
@@ -50,7 +49,6 @@
                       variant="outlined"
                       :rules="[rules.required]"
                       rounded="lg"
-                      dir="rtl"
                     />
                   </v-col>
                   <v-col cols="12" sm="6">
@@ -60,7 +58,6 @@
                       variant="outlined"
                       :rules="[rules.required]"
                       rounded="lg"
-                      dir="rtl"
                     />
                   </v-col>
                   <v-col cols="12" sm="6">
@@ -71,7 +68,6 @@
                       :rules="[rules.required, rules.email]"
                       type="email"
                       rounded="lg"
-                      dir="rtl"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -82,7 +78,6 @@
                       variant="outlined"
                       :rules="[rules.required]"
                       rounded="lg"
-                      dir="rtl"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -93,11 +88,10 @@
                       :rules="[rules.required]"
                       rows="5"
                       rounded="lg"
-                      dir="rtl"
                     />
                   </v-col>
                   <v-col cols="12">
-                    <v-checkbox v-model="formData.agree" :rules="[rules.required]" dir="rtl" class="rtl-checkbox">
+                    <v-checkbox v-model="formData.agree" :rules="[rules.required]" >
                       <template #label>
                         <span class="checkbox-label">אני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות *</span>
                       </template>
@@ -131,7 +125,7 @@
         <!-- Contact Info -->
         <v-col cols="12" md="5" class="order-1 order-md-2">
           <v-card class="contact-info-card" elevation="0">
-            <v-card-text class="pa-8" style="text-align: right; direction: rtl;">
+            <v-card-text class="pa-8" >
               <h2 class="info-title mb-8">
                   <v-icon icon="mdi-information-outline" size="small" color="primary" class="me-2" />
                   פרטי התקשרות
@@ -540,7 +534,6 @@ function submitForm() {
 }
 
 .contact-row {
-  flex-direction: row-reverse !important;
 }
 
 .contact-info-card {
@@ -557,13 +550,10 @@ function submitForm() {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  text-align: right;
   width: 100%;
 }
 
 .info-items {
-  text-align: right;
-  direction: rtl;
 }
 
 .info-card {
@@ -601,7 +591,6 @@ function submitForm() {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  flex-direction: row-reverse;
 }
 
 .info-icon-wrapper {
@@ -623,8 +612,6 @@ function submitForm() {
 
 .info-content {
   flex: 1;
-  text-align: right;
-  direction: rtl;
 }
 
 .info-label {
@@ -653,16 +640,13 @@ function submitForm() {
   color: rgb(var(--v-theme-primary));
   display: flex;
   align-items: center;
-  flex-direction: row-reverse;
   justify-content: flex-end;
-  text-align: right;
 }
 
 .social-buttons {
   display: flex;
   gap: 12px;
   justify-content: flex-start;
-  flex-direction: row-reverse;
 }
 
 .social-btn {
@@ -690,70 +674,14 @@ function submitForm() {
   font-size: 1.75rem;
   font-weight: 700;
   color: rgb(var(--v-theme-primary));
-  text-align: right;
 }
 
 .form-row {
-  flex-direction: row-reverse !important;
-}
-
-.contact-form-card :deep(.v-field__input) {
-  text-align: right !important;
-  direction: rtl !important;
-}
-
-.contact-form-card :deep(.v-label) {
-  text-align: right !important;
-  direction: rtl !important;
-  right: 16px !important;
-  left: auto !important;
-}
-
-.contact-form-card :deep(.v-field--variant-outlined .v-label) {
-  right: 16px !important;
-  left: auto !important;
-}
-
-.contact-form-card :deep(.v-select__selection-text) {
-  text-align: right !important;
-  direction: rtl !important;
-}
-
-.contact-form-card :deep(.v-list-item-title) {
-  text-align: right !important;
-  direction: rtl !important;
-}
-
-.rtl-checkbox {
-  direction: rtl !important;
-  text-align: right !important;
-  display: flex !important;
-  justify-content: flex-start !important;
-}
-
-.rtl-checkbox :deep(.v-label) {
-  text-align: right !important;
-  direction: rtl !important;
-  width: 100%;
-  order: 1;
-}
-
-.rtl-checkbox :deep(.v-selection-control) {
-  flex-direction: row !important;
-  justify-content: flex-start !important;
-}
-
-.rtl-checkbox :deep(.v-selection-control__wrapper) {
-  order: 2;
-  margin-right: 0 !important;
-  margin-left: 0 !important;
 }
 
 .checkbox-label {
   font-size: 0.9375rem;
   color: rgba(0, 0, 0, 0.8);
-  text-align: right;
-  direction: rtl;
 }
 
 .map-section {
@@ -868,35 +796,19 @@ function submitForm() {
 .faq-question {
   font-size: 1.125rem !important;
   font-weight: 600 !important;
-  text-align: right !important;
-  direction: rtl !important;
   padding: 20px 24px !important;
-}
-
-.faq-question :deep(.v-expansion-panel-title__overlay) {
-  text-align: right !important;
-  direction: rtl !important;
-}
-
-.faq-question :deep(button) {
-  text-align: right !important;
-  direction: rtl !important;
 }
 
 .faq-title-content {
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-direction: row-reverse;
   width: 100%;
-  text-align: right;
   justify-content: flex-start;
 }
 
 .faq-title-content span {
   flex: 1;
-  text-align: right;
-  direction: rtl;
 }
 
 .faq-number {
@@ -918,24 +830,14 @@ function submitForm() {
   font-size: 1.0625rem !important;
   line-height: 1.8 !important;
   color: rgba(0, 0, 0, 0.8) !important;
-  text-align: right !important;
-  direction: rtl !important;
   padding: 16px 24px !important;
   background: rgba(227, 242, 253, 0.2) !important;
-}
-
-.faq-answer :deep(.v-expansion-panel-text__wrapper) {
-  text-align: right !important;
-  direction: rtl !important;
 }
 
 .faq-answer-content {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  flex-direction: row-reverse;
-  text-align: right;
-  direction: rtl;
 }
 </style>
 

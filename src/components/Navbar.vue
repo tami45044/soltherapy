@@ -61,7 +61,6 @@ const navLinks = [
 .navbar-container {
   display: flex;
   justify-content: space-between;
-  flex-direction: row-reverse !important;
 }
 
 .logo-link {
@@ -85,7 +84,6 @@ const navLinks = [
 .nav-links {
   gap: 32px;
   align-items: center;
-  flex-direction: row-reverse;
 }
 
 .nav-link {

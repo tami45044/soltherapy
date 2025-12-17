@@ -138,7 +138,7 @@
         </div>
         <h2 class="section-title">איך אפשר להתחיל?</h2>
       </div>
-      <v-row class="rtl-grid">
+      <v-row>
         <v-col v-for="path in paths" :key="path.title" cols="12" md="4">
           <v-card class="path-card elevated-card" elevation="0" height="100%">
             <div class="card-corner-decoration"></div>
@@ -173,8 +173,8 @@
     <!-- About Preview -->
     <v-container fluid class="about-preview-section py-16">
       <v-container>
-        <v-row align="center" class="rtl-grid">
-          <v-col cols="12" md="5" order="2" order-md="1">
+        <v-row align="center">
+          <v-col cols="12" md="5">
             <div class="about-image-wrapper">
               <div class="image-glow"></div>
               <img
@@ -184,7 +184,7 @@
               />
             </div>
           </v-col>
-          <v-col cols="12" md="7" order="1" order-md="2">
+          <v-col cols="12" md="7">
             <div class="about-content">
               <div class="section-badge mb-4">
                 <v-icon icon="mdi-account-circle" start size="small" />
@@ -571,8 +571,6 @@ const paths = [
 .quote-card {
   background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%);
   border: 2px solid #E3F2FD;
-  text-align: right;
-  direction: rtl;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -743,10 +741,6 @@ const paths = [
   color: rgb(var(--v-theme-primary));
 }
 
-.rtl-grid {
-  flex-direction: row-reverse !important;
-}
-
 .elevated-card {
   background: white;
   border: 1px solid #E3F2FD;
@@ -878,8 +872,6 @@ const paths = [
 
 .about-content {
   padding: 0 24px;
-  text-align: right;
-  direction: rtl;
 }
 
 .about-title {

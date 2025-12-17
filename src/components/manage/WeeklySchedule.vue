@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid dir="rtl" class="schedule-container">
+  <v-container fluid class="schedule-container">
     <!-- Header -->
     <v-row class="mb-4">
       <v-col cols="12" md="8" class="text-right">
@@ -8,11 +8,19 @@
           שבוע {{ currentWeekDisplay }}
         </p>
       </v-col>
-      <v-col cols="12" md="4" class="text-right">
+      <v-col cols="12" md="4" class="text-left">
         <v-btn-group rounded="xl" elevation="2">
-          <v-btn @click="previousWeek" icon="mdi-chevron-left" />
-          <v-btn @click="currentWeek" min-width="100">היום</v-btn>
-          <v-btn @click="nextWeek" icon="mdi-chevron-right" />
+          <v-btn @click="previousWeek" color="primary" variant="flat">
+            שבוע קודם
+            <v-icon icon="mdi-chevron-right" class="me-2" />
+          </v-btn>
+          <v-btn @click="currentWeek" color="primary" variant="outlined" min-width="100">
+            היום
+          </v-btn>
+          <v-btn @click="nextWeek" color="primary" variant="flat">
+            <v-icon icon="mdi-chevron-left" class="ms-2" />
+            שבוע הבא
+          </v-btn>
         </v-btn-group>
       </v-col>
     </v-row>
@@ -64,7 +72,7 @@
       <v-card-text class="pa-0">
         <v-table class="weekly-table">
           <thead>
-            <tr dir="rtl">
+            <tr>
               <th class="text-center time-header">שעה</th>
               <th v-for="day in daysOfWeek" :key="day.index" class="text-center day-column">
                 <div class="day-header">
@@ -75,7 +83,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="time in timeSlots" :key="time" dir="rtl">
+            <tr v-for="time in timeSlots" :key="time">
               <td class="time-cell">{{ time }}</td>
               <td
                 v-for="day in daysOfWeek"
@@ -104,6 +112,14 @@
                       הגיע
                     </v-chip>
                     <v-chip
+                      v-if="!getAppointment(day.date, time)?.attended && isAppointmentPast(day.date, time)"
+                      size="x-small"
+                      color="error"
+                      class="ms-1"
+                    >
+                      לא הגיע
+                    </v-chip>
+                    <v-chip
                       v-if="getAppointment(day.date, time)?.paid"
                       size="x-small"
                       color="primary"
@@ -124,8 +140,8 @@
     </v-card>
 
     <!-- Template Settings Dialog -->
-    <v-dialog v-model="showTemplateDialog" max-width="900" persistent>
-      <v-card rounded="xl" dir="rtl">
+    <v-dialog v-model="showTemplateDialog" max-width="900" @click:outside="showTemplateDialog = false">
+      <v-card rounded="xl">
         <v-card-title class="pa-6 bg-primary text-white text-right">
           <h3 class="text-h5">
             הגדרת תבנית שבועית
@@ -175,7 +191,6 @@
                       type="time"
                       variant="outlined"
                       density="compact"
-                      dir="ltr"
                       hide-details
                     />
                   </v-col>
@@ -188,7 +203,6 @@
                       item-value="id"
                       variant="outlined"
                       density="compact"
-                      dir="rtl"
                       clearable
                       hide-details
                     />
@@ -227,20 +241,18 @@
     </v-dialog>
 
     <!-- Add/Edit Appointment Dialog -->
-    <v-dialog 
-      v-model="showAppointmentDetailsDialog" 
-      max-width="650" 
+    <v-dialog
+      v-model="showAppointmentDetailsDialog"
+      max-width="650"
       @click:outside="closeAppointmentDialog"
     >
-      <v-card rounded="xl" dir="rtl">
-        <v-card-title class="pa-6 bg-gradient-primary text-white text-right">
-          <h3 class="text-h5 font-weight-bold">
-            <v-icon icon="mdi-calendar-edit" size="28" class="ms-2" />
-            {{ selectedAppointment ? 'עריכת פגישה' : 'פגישה חדשה' }}
-          </h3>
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right section-header-clean">
+          <v-icon icon="mdi-calendar-edit-outline" size="24" class="ms-2" style="opacity: 0.8;" />
+          <span class="text-h6">{{ selectedAppointment ? 'עריכת פגישה' : 'פגישה חדשה' }}</span>
         </v-card-title>
 
-        <v-card-text class="pa-6" dir="rtl">
+        <v-card-text class="pa-6">
           <v-form ref="appointmentFormRef">
             <!-- שלב 1: יצירת פגישה -->
             <div class="form-section">
@@ -257,7 +269,6 @@
                 item-value="id"
                 variant="outlined"
                 rounded="lg"
-                dir="rtl"
                 :rules="[rules.required]"
                 class="mb-4"
                 @update:model-value="updateClientPrice"
@@ -284,7 +295,6 @@
                     type="date"
                     variant="outlined"
                     rounded="lg"
-                    dir="ltr"
                     :rules="[rules.required]"
                     hide-details
                   >
@@ -300,7 +310,6 @@
                     type="time"
                     variant="outlined"
                     rounded="lg"
-                    dir="ltr"
                     :rules="[rules.required]"
                     hide-details
                   >
@@ -317,7 +326,6 @@
                 type="number"
                 variant="outlined"
                 rounded="lg"
-                dir="rtl"
                 prefix="₪"
                 class="mb-4 mt-4"
                 hide-details
@@ -332,9 +340,9 @@
                 label="הערות"
                 variant="outlined"
                 rounded="lg"
-                dir="rtl"
                 rows="2"
                 hide-details
+                class=""
               >
                 <template #prepend-inner>
                   <v-icon icon="mdi-note-text" color="primary" />
@@ -357,7 +365,6 @@
                 color="success"
                 hide-details
                 class="mb-4"
-                dir="rtl"
               >
                 <template #prepend>
                   <v-icon icon="mdi-account-check" color="success" class="ms-2" />
@@ -368,89 +375,173 @@
 
               <h4 class="text-subtitle-1 font-weight-bold mb-4" style="color: #1976D2;">
                 <v-icon icon="mdi-cash-check" size="small" class="ms-1" />
-                פרטי תשלום
+                תשלומים
               </h4>
 
-              <v-switch
-                v-model="appointmentForm.paid"
-                label="שולם"
-                color="primary"
-                hide-details
-                class="mb-4"
-                dir="rtl"
-              >
-                <template #prepend>
-                  <v-icon icon="mdi-cash-multiple" color="primary" class="ms-2" />
-                </template>
-              </v-switch>
+              <!-- סיכום תשלומים -->
+              <v-card rounded="lg" class="mb-4" variant="tonal" :color="isPaidInFull ? 'success' : remainingDebt < 0 ? 'info' : 'warning'">
+                <v-card-text class="pa-4">
+                  <div class="d-flex justify-space-between align-center mb-2">
+                    <span class="text-body-2 font-weight-medium">מחיר פגישה:</span>
+                    <span class="text-h6 font-weight-bold">₪{{ appointmentForm.price }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-2">
+                    <span class="text-body-2 font-weight-medium">שולם עד כה:</span>
+                    <span class="text-h6 font-weight-bold">₪{{ totalPaid }}</span>
+                  </div>
+                  <v-divider class="my-2" />
+                  <div class="d-flex justify-space-between align-center">
+                    <span class="text-body-1 font-weight-bold">
+                      {{ remainingDebt > 0 ? 'נותר לתשלום:' : remainingDebt < 0 ? 'שילם יותר (זכות):' : 'שולם במלואו!' }}
+                    </span>
+                    <span class="text-h5 font-weight-bold">
+                      {{ remainingDebt !== 0 ? `₪${Math.abs(remainingDebt)}` : '✓' }}
+                    </span>
+                  </div>
+                </v-card-text>
+              </v-card>
 
-              <v-row v-if="appointmentForm.paid" class="mt-2">
-                <v-col cols="6">
-                  <v-select
-                    v-model="appointmentForm.paymentMethod"
-                    label="אמצעי תשלום *"
-                    :items="paymentMethods"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    rounded="lg"
-                    dir="rtl"
-                    hide-details
-                  >
-                    <template #prepend-inner>
-                      <v-icon icon="mdi-credit-card" color="primary" />
-                    </template>
-                  </v-select>
-                </v-col>
-                <v-col cols="6">
-                  <v-text-field
-                    v-model.number="appointmentForm.paymentAmount"
-                    label="סכום ששולם *"
-                    type="number"
-                    variant="outlined"
-                    rounded="lg"
-                    dir="rtl"
-                    prefix="₪"
-                    :hint="`מחיר מלא: ₪${appointmentForm.price}`"
-                    persistent-hint
-                  >
-                    <template #prepend-inner>
-                      <v-icon icon="mdi-currency-ils" color="primary" />
-                    </template>
-                  </v-text-field>
-                </v-col>
-              </v-row>
+              <!-- רשימת תשלומים קיימים -->
+              <div v-if="payments.length > 0" class="mb-4">
+                <h5 class="text-subtitle-2 font-weight-bold mb-3" style="color: #546e7a;">
+                  <v-icon icon="mdi-history" size="20" class="ms-1" />
+                  תשלומים שבוצעו:
+                </h5>
+                <v-card
+                  v-for="payment in payments"
+                  :key="payment.id"
+                  rounded="lg"
+                  class="mb-2 payment-card-clean"
+                  elevation="0"
+                >
+                  <v-card-text class="pa-4">
+                    <div class="d-flex align-center justify-space-between">
+                      <div class="text-right">
+                        <div class="d-flex align-center gap-3 mb-2">
+                          <span class="text-h6 font-weight-bold" style="color: #455A64;">₪{{ payment.amount }}</span>
+                          <v-chip
+                            size="small"
+                            :color="getPaymentMethodColorPastel(payment.method)"
+                            variant="flat"
+                            class="payment-chip-pastel"
+                          >
+                            {{ getPaymentMethodLabel(payment.method) }}
+                          </v-chip>
+                        </div>
+                        <div class="text-caption" style="color: #78909C;">
+                          {{ formatPaymentDateWithYear(payment.date) }}
+                          {{ payment.notes ? ` • ${payment.notes}` : '' }}
+                        </div>
+                      </div>
+                      <v-btn
+                        icon="mdi-delete-outline"
+                        size="small"
+                        variant="text"
+                        style="color: #CFD8DC;"
+                        @click="removePayment(payment.id)"
+                      />
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </div>
 
-              <v-alert
-                v-if="appointmentForm.paid && appointmentForm.paymentAmount < appointmentForm.price"
-                type="warning"
-                density="compact"
-                class="mt-3"
-                dir="rtl"
-                variant="tonal"
-              >
-                <v-icon icon="mdi-alert" class="ms-2" />
-                חוב: ₪{{ appointmentForm.price - appointmentForm.paymentAmount }}
-              </v-alert>
+              <!-- הוספת תשלום חדש -->
+              <div v-if="!showAddPaymentForm">
+                <v-btn
+                  color="blue-grey-lighten-4"
+                  block
+                  rounded="xl"
+                  size="large"
+                  variant="flat"
+                  @click="showAddPaymentForm = true"
+                  class="add-payment-btn"
+                >
+                  <v-icon icon="mdi-plus-circle-outline" size="20" class="ms-2" />
+                  הוסף תשלום
+                </v-btn>
+              </div>
 
-              <v-alert
-                v-if="appointmentForm.paid && appointmentForm.paymentAmount > appointmentForm.price"
-                type="success"
-                density="compact"
-                class="mt-3"
-                dir="rtl"
-                variant="tonal"
-              >
-                <v-icon icon="mdi-check-circle" class="ms-2" />
-                שילם יותר (זכות): ₪{{ appointmentForm.paymentAmount - appointmentForm.price }}
-              </v-alert>
+              <v-expand-transition>
+                <v-card v-if="showAddPaymentForm" rounded="lg" class="new-payment-card-clean" elevation="0">
+                  <v-card-text class="pa-4">
+                    <v-row>
+                      <v-col cols="6">
+                        <v-text-field
+                          v-model.number="newPayment.amount"
+                          label="סכום *"
+                          type="number"
+                          variant="outlined"
+                          rounded="lg"
+                          prefix="₪"
+                          hide-details
+                          class=""
+                        >
+                          <template #prepend-inner>
+                            <v-icon icon="mdi-cash" size="20" style="opacity: 0.6;" />
+                          </template>
+                        </v-text-field>
+                      </v-col>
+                      <v-col cols="6">
+                        <v-select
+                          v-model="newPayment.method"
+                          label="אמצעי תשלום *"
+                          :items="paymentMethods"
+                          item-title="title"
+                          item-value="value"
+                          variant="outlined"
+                          rounded="lg"
+                          hide-details
+                          class=""
+                        >
+                          <template #prepend-inner>
+                            <v-icon icon="mdi-credit-card-outline" size="20" style="opacity: 0.6;" />
+                          </template>
+                        </v-select>
+                      </v-col>
+                    </v-row>
+                    <v-text-field
+                      v-model="newPayment.notes"
+                      label="הערות (אופציונלי)"
+                      variant="outlined"
+                      rounded="lg"
+                      class="mt-3"
+                      hide-details
+                    >
+                      <template #prepend-inner>
+                        <v-icon icon="mdi-note-text-outline" size="20" style="opacity: 0.6;" />
+                      </template>
+                    </v-text-field>
+                    <div class="d-flex gap-2 mt-4">
+                      <v-btn
+                        color="blue-grey-darken-2"
+                        rounded="xl"
+                        size="default"
+                        variant="flat"
+                        @click="addPayment"
+                        :disabled="!newPayment.amount || newPayment.amount <= 0"
+                      >
+                        <v-icon icon="mdi-check" size="18" class="ms-2" />
+                        הוסף
+                      </v-btn>
+                      <v-btn
+                        variant="outlined"
+                        rounded="xl"
+                        size="default"
+                        @click="cancelAddPayment"
+                      >
+                        ביטול
+                      </v-btn>
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-expand-transition>
             </div>
           </v-form>
         </v-card-text>
 
-        <v-card-actions class="pa-6 pt-0 d-flex justify-start" dir="rtl">
+        <v-card-actions class="pa-6 pt-0 d-flex">
           <v-btn
-            color="primary"
+            color="blue-grey-darken-2"
             rounded="xl"
             size="large"
             variant="flat"
@@ -458,12 +549,12 @@
             @click="saveAppointment"
             class="px-8"
           >
-            <v-icon icon="mdi-content-save" size="20" class="ms-2" />
+            <v-icon icon="mdi-content-save-outline" size="18" class="ms-2" />
             שמור
           </v-btn>
-          <v-btn 
-            variant="outlined" 
-            rounded="xl" 
+          <v-btn
+            variant="outlined"
+            rounded="xl"
             size="large"
             @click="closeAppointmentDialog"
             class="px-6"
@@ -473,13 +564,14 @@
           <v-spacer />
           <v-btn
             v-if="selectedAppointment"
-            color="error"
-            variant="text"
+            color="red-lighten-3"
+            variant="outlined"
             rounded="xl"
             @click="confirmDeleteAppointment"
+            class="px-6"
           >
-            <v-icon icon="mdi-delete" size="20" class="ms-2" />
             מחק
+            <v-icon icon="mdi-delete-outline" size="18" class="me-2" />
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -507,6 +599,7 @@ const showTemplateDialog = ref(false)
 const showAppointmentDetailsDialog = ref(false)
 const showAddAppointmentDialog = ref(false)
 const showAddClientQuick = ref(false)
+const showAddPaymentForm = ref(false)
 const selectedAppointment = ref<Appointment | null>(null)
 const savingTemplate = ref(false)
 const savingAppointment = ref(false)
@@ -519,8 +612,20 @@ const appointmentForm = ref({
   price: 400,
   attended: false,
   paid: false,
-  paymentMethod: 'cash' as const,
-  paymentAmount: 0,
+  notes: ''
+})
+
+const payments = ref<Array<{
+  id: string
+  amount: number
+  method: 'cash' | 'transfer' | 'credit' | 'check'
+  date: Date
+  notes: string
+}>>([])
+
+const newPayment = ref({
+  amount: 0,
+  method: 'cash' as 'cash' | 'transfer' | 'credit' | 'check',
   notes: ''
 })
 
@@ -580,7 +685,7 @@ const hasTemplate = computed(() => templateSlots.value.length > 0)
 
 const isWeekFilledFromTemplate = computed(() => {
   if (!hasTemplate.value) return false
-  
+
   // Check if all template slots already have appointments in current week
   let allSlotsFilled = true
   for (const slot of templateSlots.value) {
@@ -598,6 +703,18 @@ const isWeekFilledFromTemplate = computed(() => {
 
 const canFillWeek = computed(() => {
   return hasTemplate.value && !isWeekFilledFromTemplate.value
+})
+
+const totalPaid = computed(() => {
+  return payments.value.reduce((sum, payment) => sum + payment.amount, 0)
+})
+
+const remainingDebt = computed(() => {
+  return appointmentForm.value.price - totalPaid.value
+})
+
+const isPaidInFull = computed(() => {
+  return totalPaid.value >= appointmentForm.value.price
 })
 
 const daysOfWeek = computed(() => {
@@ -624,7 +741,17 @@ const currentWeekDisplay = computed(() => {
   const start = new Date(currentWeekStart.value)
   const end = new Date(currentWeekStart.value)
   end.setDate(end.getDate() + 6)
-  return `${formatDate(start)} - ${formatDate(end)}`
+
+  const startYear = start.getFullYear()
+  const endYear = end.getFullYear()
+
+  // אם השנים שונות (למשל 31.12.2025 - 06.01.2026)
+  if (startYear !== endYear) {
+    return `${formatDate(start)} ${startYear} - ${formatDate(end)} ${endYear}`
+  }
+
+  // אם באותה שנה
+  return `${formatDate(start)} - ${formatDate(end)}, ${startYear}`
 })
 
 // Helper Functions
@@ -639,6 +766,14 @@ function formatDate(date: Date): string {
   return new Intl.DateTimeFormat('he-IL', {
     day: '2-digit',
     month: '2-digit'
+  }).format(date)
+}
+
+function formatPaymentDateWithYear(date: Date): string {
+  return new Intl.DateTimeFormat('he-IL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   }).format(date)
 }
 
@@ -668,6 +803,18 @@ function dateToInputString(date: Date): string {
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+// פונקציה לבדיקה אם פגישה עברה
+function isAppointmentPast(date: Date, time: string): boolean {
+  const now = new Date()
+  const aptDate = new Date(date)
+
+  // פירוק השעה
+  const [hours, minutes] = time.split(':').map(Number)
+  aptDate.setHours(hours, minutes, 0, 0)
+
+  return aptDate < now
 }
 
 // Methods
@@ -703,6 +850,27 @@ const loadAppointments = async () => {
       const aptDate = data.date?.toDate() || new Date()
       aptDate.setHours(0, 0, 0, 0)
 
+      // Support both old and new payment format
+      let paymentsArray = []
+      if (data.payments && Array.isArray(data.payments)) {
+        paymentsArray = data.payments.map((p: any) => ({
+          id: p.id,
+          amount: p.amount,
+          method: p.method,
+          date: p.date?.toDate ? p.date.toDate() : new Date(p.date),
+          notes: p.notes || ''
+        }))
+      } else if (data.paymentAmount && data.paymentAmount > 0) {
+        // Old format - create single payment
+        paymentsArray = [{
+          id: `payment_${Date.now()}`,
+          amount: data.paymentAmount,
+          method: data.paymentMethod || 'cash',
+          date: aptDate,
+          notes: ''
+        }]
+      }
+
       return {
         id: doc.id,
         clientId: data.clientId,
@@ -712,10 +880,12 @@ const loadAppointments = async () => {
         price: data.price,
         attended: data.attended || false,
         paid: data.paid || false,
-        paymentAmount: data.paymentAmount,
-        paymentMethod: data.paymentMethod,
+        payments: paymentsArray,
         sessionNumber: data.sessionNumber || 1,
-        notes: data.notes || ''
+        notes: data.notes || '',
+        // Keep old fields for backward compatibility
+        paymentAmount: data.paymentAmount,
+        paymentMethod: data.paymentMethod
       } as Appointment
     })
 
@@ -843,8 +1013,7 @@ const fillWeekFromTemplate = async () => {
               price: client.pricePerSession,
               attended: false,
               paid: false,
-              paymentMethod: 'cash',
-              paymentAmount: 0,
+              payments: [],
               sessionNumber: client.totalSessions + 1,
               notes: ''
             }
@@ -882,9 +1051,29 @@ const openAppointmentDialog = (date: Date, time: string) => {
       price: existing.price,
       attended: existing.attended,
       paid: existing.paid,
-      paymentMethod: existing.paymentMethod || 'cash',
-      paymentAmount: existing.paymentAmount || existing.price,
       notes: existing.notes || ''
+    }
+
+    // Load payments (support old format with single payment)
+    if (existing.payments && existing.payments.length > 0) {
+      payments.value = existing.payments.map(p => ({
+        id: p.id,
+        amount: p.amount,
+        method: p.method,
+        date: p.date instanceof Date ? p.date : new Date(p.date),
+        notes: p.notes || ''
+      }))
+    } else if (existing.paymentAmount && existing.paymentAmount > 0) {
+      // Old format - convert to new format
+      payments.value = [{
+        id: `payment_${Date.now()}`,
+        amount: existing.paymentAmount,
+        method: existing.paymentMethod || 'cash',
+        date: aptDate,
+        notes: ''
+      }]
+    } else {
+      payments.value = []
     }
   } else {
     selectedAppointment.value = null
@@ -895,10 +1084,9 @@ const openAppointmentDialog = (date: Date, time: string) => {
       price: 400,
       attended: false,
       paid: false,
-      paymentMethod: 'cash',
-      paymentAmount: 400,
       notes: ''
     }
+    payments.value = []
   }
 
   showAppointmentDetailsDialog.value = true
@@ -907,18 +1095,84 @@ const openAppointmentDialog = (date: Date, time: string) => {
 const closeAppointmentDialog = () => {
   showAppointmentDetailsDialog.value = false
   selectedAppointment.value = null
+  payments.value = []
+  showAddPaymentForm.value = false
+  newPayment.value = {
+    amount: 0,
+    method: 'cash',
+    notes: ''
+  }
   appointmentFormRef.value?.reset()
+}
+
+const cancelAddPayment = () => {
+  showAddPaymentForm.value = false
+  newPayment.value = {
+    amount: 0,
+    method: 'cash',
+    notes: ''
+  }
+}
+
+const getPaymentMethodLabel = (method: string): string => {
+  const labels: Record<string, string> = {
+    cash: 'מזומן',
+    transfer: 'העברה',
+    credit: 'אשראי',
+    check: 'צ\'ק'
+  }
+  return labels[method] || method
+}
+
+const getPaymentMethodColorPastel = (method: string): string => {
+  const colors: Record<string, string> = {
+    cash: 'teal-lighten-4',
+    transfer: 'blue-lighten-4',
+    credit: 'purple-lighten-4',
+    check: 'orange-lighten-4'
+  }
+  return colors[method] || 'grey-lighten-3'
 }
 
 const updateClientPrice = () => {
   const client = clients.value.find(c => c.id === appointmentForm.value.clientId)
   if (client) {
     appointmentForm.value.price = client.pricePerSession
-    // Only update payment amount if it's 0 or if it was the old price
-    if (appointmentForm.value.paymentAmount === 0 || appointmentForm.value.paymentAmount === appointmentForm.value.price) {
-      appointmentForm.value.paymentAmount = client.pricePerSession
-    }
   }
+}
+
+const addPayment = () => {
+  if (newPayment.value.amount <= 0) {
+    showSnackbar('סכום התשלום חייב להיות גדול מ-0', 'warning')
+    return
+  }
+
+  payments.value.push({
+    id: `payment_${Date.now()}`,
+    amount: newPayment.value.amount,
+    method: newPayment.value.method,
+    date: new Date(),
+    notes: newPayment.value.notes
+  })
+
+  // Reset form
+  newPayment.value = {
+    amount: 0,
+    method: 'cash',
+    notes: ''
+  }
+
+  // Update paid status
+  appointmentForm.value.paid = isPaidInFull.value
+}
+
+const removePayment = (paymentId: string) => {
+  const index = payments.value.findIndex(p => p.id === paymentId)
+  if (index > -1) {
+    payments.value.splice(index, 1)
+  }
+  // Update paid status
+  appointmentForm.value.paid = isPaidInFull.value
 }
 
 const saveAppointment = async () => {
@@ -933,6 +1187,9 @@ const saveAppointment = async () => {
     // יצירת תאריך מקומי נכון (לא UTC!)
     const appointmentDate = createLocalDate(appointmentForm.value.date)
 
+    // Update paid status based on total payments
+    appointmentForm.value.paid = isPaidInFull.value
+
     const appointmentData = {
       clientId: appointmentForm.value.clientId,
       clientName: client.name,
@@ -941,9 +1198,14 @@ const saveAppointment = async () => {
       price: appointmentForm.value.price,
       attended: appointmentForm.value.attended,
       paid: appointmentForm.value.paid,
-      paymentMethod: appointmentForm.value.paymentMethod,
-      paymentAmount: appointmentForm.value.paymentAmount || 0,
-      sessionNumber: client.totalSessions + 1,
+      payments: payments.value.map(p => ({
+        id: p.id,
+        amount: p.amount,
+        method: p.method,
+        date: p.date,
+        notes: p.notes
+      })),
+      sessionNumber: selectedAppointment.value?.sessionNumber || client.totalSessions + 1,
       notes: appointmentForm.value.notes || ''
     }
 
@@ -955,14 +1217,12 @@ const saveAppointment = async () => {
       showSnackbar('הפגישה נוספה בהצלחה', 'success')
     }
 
-    // Update client balance and session count
-    if (appointmentForm.value.paid) {
-      const balanceChange = appointmentForm.value.paymentAmount - appointmentForm.value.price
-      await updateDoc(doc(db, 'clients', client.id), {
-        totalSessions: client.totalSessions + 1,
-        balance: client.balance + balanceChange
-      })
-    }
+    // Update client balance
+    const balanceChange = totalPaid.value - appointmentForm.value.price
+    await updateDoc(doc(db, 'clients', client.id), {
+      totalSessions: selectedAppointment.value ? client.totalSessions : client.totalSessions + 1,
+      balance: client.balance + balanceChange
+    })
 
     await loadAppointments()
     await loadClients() // Reload to see updated balance
@@ -1036,12 +1296,10 @@ onMounted(() => {
 .weekly-table {
   width: 100%;
   border-collapse: collapse;
-  direction: rtl;
 }
 
 .weekly-table thead tr,
 .weekly-table tbody tr {
-  direction: rtl;
 }
 
 .weekly-table th {
@@ -1226,6 +1484,69 @@ onMounted(() => {
 
 .bg-gradient-primary {
   background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+}
+
+/* Payment Cards */
+.payment-card {
+  transition: all 0.3s ease;
+  border: 1px solid rgba(25, 118, 210, 0.2);
+}
+
+.payment-card:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15) !important;
+  border-color: rgba(25, 118, 210, 0.4);
+}
+
+.new-payment-card {
+  border: 2px solid rgba(25, 118, 210, 0.3);
+  transition: all 0.3s ease;
+}
+
+.new-payment-card:hover {
+  border-color: rgba(25, 118, 210, 0.5);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.1);
+}
+
+/* Clean Payment Styles */
+.payment-card-clean {
+  background: #FAFBFC;
+  border: 1px solid #E0E0E0;
+  transition: all 0.2s ease;
+}
+
+.payment-card-clean:hover {
+  background: #F5F7FA;
+  border-color: #B0BEC5;
+}
+
+.payment-chip-pastel {
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.new-payment-card-clean {
+  background: #F5F7FA;
+  border: 1px solid #CFD8DC;
+  margin-top: 12px;
+}
+
+.add-payment-btn {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+/* Section Header Clean */
+.section-header-clean {
+  color: #455A64;
+  background: linear-gradient(to bottom, #F5F7FA 0%, #FFFFFF 100%);
+  border-bottom: 1px solid #E0E0E0;
+  font-weight: 600;
 }
 </style>
 

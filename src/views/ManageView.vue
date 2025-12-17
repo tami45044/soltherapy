@@ -19,7 +19,6 @@
               type="email"
               variant="outlined"
               rounded="lg"
-              dir="ltr"
               prepend-inner-icon="mdi-email"
               :error-messages="loginError"
               @input="loginError = ''"
@@ -33,7 +32,6 @@
               type="password"
               variant="outlined"
               rounded="lg"
-              dir="rtl"
               prepend-inner-icon="mdi-lock"
               :error-messages="loginError"
               @input="loginError = ''"
@@ -60,34 +58,42 @@
     <!-- Main Management Interface -->
     <div v-if="isAuthenticated" class="manage-main">
       <!-- Top App Bar -->
-      <v-app-bar color="primary" elevation="4" height="80" dir="rtl">
+      <v-app-bar color="blue-grey-lighten-5" elevation="1" height="80">
         <v-container class="d-flex align-center">
-          <v-btn icon="mdi-logout" @click="handleLogout" class="ms-2" />
+          <v-btn icon="mdi-logout-variant" variant="text" @click="handleLogout" class="ms-2" style="color: #546E7A;" />
           <v-spacer />
           <div class="text-right">
-            <h1 class="text-h5">מערכת ניהול סולתרפיה</h1>
-            <p class="text-caption">ברוך הבא, משה יצחק</p>
+            <h1 class="text-h5" style="color: #37474F; font-weight: 600;">מערכת ניהול סולתרפיה</h1>
+            <p class="text-caption" style="color: #78909C;">ברוך הבא, משה יצחק</p>
           </div>
-          <v-icon icon="mdi-clipboard-text" size="40" class="me-4" />
+          <v-icon icon="mdi-clipboard-text-outline" size="40" class="me-4" style="color: #78909C;" />
         </v-container>
       </v-app-bar>
 
       <!-- Tabs -->
-      <v-tabs v-model="activeTab" bg-color="surface" color="primary" align-tabs="center" class="mt-2" dir="rtl" direction="horizontal">
-        <v-tab value="dashboard">
-          <v-icon icon="mdi-view-dashboard" class="ms-2" />
+      <v-tabs
+        v-model="activeTab"
+        bg-color="white"
+        color="blue-grey-darken-2"
+        align-tabs="center"
+        class="tabs-clean elevation-1"
+        direction="horizontal"
+        slider-color="blue-grey-darken-2"
+      >
+        <v-tab value="dashboard" class="tab-clean">
+          <v-icon icon="mdi-view-dashboard-outline" size="20" class="ms-2" />
           דשבורד
         </v-tab>
-        <v-tab value="clients">
-          <v-icon icon="mdi-account-group" class="ms-2" />
+        <v-tab value="clients" class="tab-clean">
+          <v-icon icon="mdi-account-group-outline" size="20" class="ms-2" />
           לקוחות
         </v-tab>
-        <v-tab value="schedule">
-          <v-icon icon="mdi-calendar-week" class="ms-2" />
+        <v-tab value="schedule" class="tab-clean">
+          <v-icon icon="mdi-calendar-month-outline" size="20" class="ms-2" />
           יומן שבועי
         </v-tab>
-        <v-tab value="prize">
-          <v-icon icon="mdi-gift" class="ms-2" />
+        <v-tab value="prize" class="tab-clean">
+          <v-icon icon="mdi-gift-outline" size="20" class="ms-2" />
           הפרס השבועי
         </v-tab>
       </v-tabs>
@@ -192,7 +198,7 @@ onMounted(() => {
 <style scoped>
 .manage-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #B0BEC5 0%, #90A4AE 100%);
 }
 
 .login-card {
@@ -201,7 +207,24 @@ onMounted(() => {
 
 .manage-main {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #F5F7FA;
+}
+
+/* Clean Tabs */
+.tabs-clean {
+  border-bottom: 1px solid #E0E0E0;
+}
+
+.tab-clean {
+  color: #546E7A !important;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.95rem;
+}
+
+.tab-clean:hover {
+  background-color: #ECEFF1;
 }
 </style>
 

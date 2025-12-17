@@ -619,6 +619,11 @@ const showSnackbar = (message: string, color: string) => {
 // Lifecycle
 onMounted(() => {
   loadPrize()
+  
+  // רענון אוטומטי כל 10 שניות כדי לעדכן את היעד והסכום
+  setInterval(() => {
+    loadPrize()
+  }, 10000)
 })
 </script>
 

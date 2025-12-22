@@ -37,18 +37,26 @@ export interface Payment {
 }
 
 // Appointment Types
+export type DurationCategory = 'on-time' | 'partial' | 'overtime'
+
 export interface Appointment {
   id: string
   clientId: string
   clientName: string
   date: Date
-  time: string // HH:mm format
+  time: string // HH:mm format (scheduled time)
   price: number
   attended: boolean
   paid: boolean
   payments: PaymentRecord[] // מערך תשלומים
   sessionNumber: number // מספר הפגישה של הלקוח
   notes?: string
+  // Session summary (only when attended)
+  startTime?: string // HH:mm - שעת התחלה בפועל
+  endTime?: string // HH:mm - שעת סיום בפועל
+  duration?: number // משך הפגישה בדקות
+  durationCategory?: DurationCategory // קטגוריית משך הפגישה
+  sessionSummaryNotes?: string // סיכום הפגישה בטקסט חופשי
 }
 
 // Weekly Schedule Template

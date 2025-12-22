@@ -111,12 +111,6 @@
                     </template>
                     <v-list-item-title>עריכה</v-list-item-title>
                   </v-list-item>
-                  <v-list-item @click="confirmDelete(client)" class="hover-item">
-                    <template #prepend>
-                      <v-icon icon="mdi-delete" size="small" color="error" />
-                    </template>
-                    <v-list-item-title class="text-error">מחיקה</v-list-item-title>
-                  </v-list-item>
                 </v-list>
               </v-menu>
             </div>
@@ -273,6 +267,24 @@
               class="mb-4"
             />
 
+            <v-text-field
+              v-model.number="formData.previousDebt"
+              label="הוספת חוב/זכות נוסף (אופציונלי)"
+              prepend-inner-icon="mdi-cash-minus"
+              variant="outlined"
+              rounded="lg"
+              type="number"
+              :hint="editMode
+                ? '⚠️ שים לב: הסכום יתווסף ליתרה הנוכחית של הלקוח (שלילי = חוב, חיובי = זכות)'
+                : 'הזן סכום שלילי לחוב או חיובי לזכות (לדוגמא: -500 = חוב של 500 ש״ח)'"
+              persistent-hint
+              class="mb-4"
+            >
+              <template #prepend-inner>
+                <v-icon :icon="editMode ? 'mdi-plus-minus' : 'mdi-cash-minus'" />
+              </template>
+            </v-text-field>
+
             <v-textarea
               v-model="formData.notes"
               label="הערות"
@@ -286,7 +298,22 @@
         </v-card-text>
 
         <v-card-actions class="pa-6 pt-0">
+          <!-- Delete button (only in edit mode) -->
+          <v-btn
+            v-if="editMode"
+            color="error"
+            variant="outlined"
+            rounded="xl"
+            size="large"
+            @click="confirmDelete(clientToDelete)"
+            class="px-6"
+          >
+            <v-icon icon="mdi-delete-outline" />
+            מחק לקוח
+          </v-btn>
+
           <v-spacer />
+
           <v-btn
             variant="outlined"
             rounded="xl"
@@ -510,6 +537,7 @@ const formData = ref({
   email: '',
   pricePerSession: 400,
   frequency: 'weekly' as 'weekly' | 'biweekly' | 'monthly',
+  previousDebt: 0,
   notes: ''
 })
 
@@ -616,6 +644,7 @@ const openAddDialog = () => {
     email: '',
     pricePerSession: 400,
     frequency: 'weekly',
+    previousDebt: 0,
     notes: ''
   }
   showDialog.value = true
@@ -629,6 +658,7 @@ const openEditDialog = (client: Client) => {
     email: client.email || '',
     pricePerSession: client.pricePerSession,
     frequency: client.frequency || 'weekly',
+    previousDebt: 0, // Reset to 0 - user can add adjustment
     notes: client.notes || ''
   }
   clientToDelete.value = client
@@ -648,17 +678,37 @@ const saveClient = async () => {
   try {
     if (editMode.value && clientToDelete.value) {
       // Update existing client
-      await updateDoc(doc(db, 'clients', clientToDelete.value.id), {
+      const updateData: any = {
         name: formData.value.name,
         phone: formData.value.phone || null,
         email: formData.value.email || null,
         pricePerSession: formData.value.pricePerSession,
         frequency: formData.value.frequency,
         notes: formData.value.notes
-      })
-      showSnackbar('הלקוח עודכן בהצלחה', 'success')
+      }
+
+      // If user added a debt/credit adjustment, update balance
+      const balanceAdjustment = formData.value.previousDebt || 0
+      if (balanceAdjustment !== 0) {
+        const currentBalance = clientToDelete.value.balance || 0
+        updateData.balance = currentBalance + balanceAdjustment
+      }
+
+      await updateDoc(doc(db, 'clients', clientToDelete.value.id), updateData)
+
+      if (balanceAdjustment !== 0) {
+        const adjustmentText = balanceAdjustment < 0
+          ? `נוסף חוב: ₪${Math.abs(balanceAdjustment)}`
+          : `נוספה זכות: ₪${balanceAdjustment}`
+        showSnackbar(`הלקוח עודכן בהצלחה (${adjustmentText})`, 'success')
+      } else {
+        showSnackbar('הלקוח עודכן בהצלחה', 'success')
+      }
     } else {
       // Add new client
+      // Note: previousDebt is negative for debt, positive for credit
+      const initialBalance = formData.value.previousDebt || 0
+
       await addDoc(collection(db, 'clients'), {
         name: formData.value.name,
         phone: formData.value.phone || null,
@@ -667,10 +717,18 @@ const saveClient = async () => {
         frequency: formData.value.frequency,
         notes: formData.value.notes,
         totalSessions: 0,
-        balance: 0,
+        balance: initialBalance, // Include previous debt/credit
         createdAt: new Date()
       })
-      showSnackbar('הלקוח נוסף בהצלחה', 'success')
+
+      if (initialBalance !== 0) {
+        const debtText = initialBalance < 0
+          ? `חוב קודם: ₪${Math.abs(initialBalance)}`
+          : `זכות קודמת: ₪${initialBalance}`
+        showSnackbar(`הלקוח נוסף בהצלחה (${debtText})`, 'success')
+      } else {
+        showSnackbar('הלקוח נוסף בהצלחה', 'success')
+      }
     }
     closeDialog()
     await loadClients()
@@ -682,8 +740,10 @@ const saveClient = async () => {
   }
 }
 
-const confirmDelete = (client: Client) => {
+const confirmDelete = (client: Client | null) => {
+  if (!client) return
   clientToDelete.value = client
+  showDialog.value = false // Close edit dialog if open
   showDeleteDialog.value = true
 }
 

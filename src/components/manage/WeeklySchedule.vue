@@ -27,7 +27,7 @@
 
     <!-- Quick Actions -->
     <v-row class="mb-4">
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="3">
         <v-btn
           color="primary"
           block
@@ -39,7 +39,7 @@
           הגדר תבנית שבועית
         </v-btn>
       </v-col>
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="3">
         <v-btn
           color="success"
           block
@@ -53,7 +53,7 @@
           מלא שבוע מתבנית
         </v-btn>
       </v-col>
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="3">
         <v-btn
           color="info"
           block
@@ -63,6 +63,20 @@
         >
           <v-icon icon="mdi-calendar-plus" />
           הוסף פגישה
+        </v-btn>
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-btn
+          color="error"
+          block
+          size="large"
+          rounded="xl"
+          variant="outlined"
+          @click="clearCurrentWeek"
+          :loading="clearingWeek"
+        >
+          <v-icon icon="mdi-delete-sweep" />
+          נקה שבוע נוכחי
         </v-btn>
       </v-col>
     </v-row>
@@ -129,6 +143,16 @@
                       :color="getPaymentStatusColor(getAppointment(day.date, time))"
                     >
                       {{ getPaymentStatusText(getAppointment(day.date, time)) }}
+                    </v-chip>
+
+                    <!-- תגית משך פגישה -->
+                    <v-chip
+                      v-if="getAppointment(day.date, time)?.durationCategory"
+                      size="x-small"
+                      :color="getDurationColorForAppointment(getAppointment(day.date, time))"
+                    >
+                      <v-icon :icon="getDurationIconForAppointment(getAppointment(day.date, time))" size="x-small" start />
+                      {{ getDurationLabelForAppointment(getAppointment(day.date, time)) }}
                     </v-chip>
                   </div>
                 </div>
@@ -209,6 +233,7 @@
                       variant="outlined"
                       density="compact"
                       hide-details
+                      @change="sortTemplateSlots"
                     />
                   </v-col>
                   <v-col cols="6">
@@ -414,6 +439,80 @@
                   <v-icon icon="mdi-account-check" color="success" />
                 </template>
               </v-switch>
+
+              <!-- סיכום פגישה (רק אם הגיע) -->
+              <div v-if="appointmentForm.attended" class="mt-6">
+                <v-divider class="mb-4" />
+
+                <h4 class="text-subtitle-1 font-weight-bold mb-4" style="color: #1976D2;">
+                  <v-icon icon="mdi-clock-check-outline" size="small" />
+                  סיכום פגישה
+                </h4>
+
+                <v-textarea
+                  v-model="sessionSummary.notes"
+                  label="סיכום הפגישה בטקסט חופשי"
+                  variant="outlined"
+                  rounded="lg"
+                  rows="3"
+                  prepend-inner-icon="mdi-text"
+                  hint="מה היה בפגישה? נושאים שדובר בהם, התקדמות, וכו'"
+                  persistent-hint
+                  class="mb-4"
+                />
+
+                <v-row>
+                  <v-col cols="6">
+                    <v-text-field
+                      v-model="sessionSummary.startTime"
+                      label="שעת התחלה"
+                      type="time"
+                      variant="outlined"
+                      rounded="lg"
+                      density="compact"
+                      prepend-inner-icon="mdi-clock-start"
+                      @change="calculateDuration"
+                    />
+                  </v-col>
+                  <v-col cols="6">
+                    <v-text-field
+                      v-model="sessionSummary.endTime"
+                      label="שעת סיום"
+                      type="time"
+                      variant="outlined"
+                      rounded="lg"
+                      density="compact"
+                      prepend-inner-icon="mdi-clock-end"
+                      @change="calculateDuration"
+                    />
+                  </v-col>
+                </v-row>
+
+                <!-- תוצאת משך הפגישה -->
+                <v-card
+                  v-if="sessionSummary.duration !== null"
+                  rounded="lg"
+                  variant="tonal"
+                  :color="getDurationColor()"
+                  class="mt-3 mb-3"
+                >
+                  <v-card-text class="pa-4 text-center">
+                    <div class="text-body-2 font-weight-medium mb-2">משך הפגישה</div>
+                    <div class="text-h5 font-weight-bold mb-2">
+                      {{ Math.floor(sessionSummary.duration / 60) }}:{{ String(sessionSummary.duration % 60).padStart(2, '0') }} שעות
+                    </div>
+                    <v-chip
+                      :color="getDurationColor()"
+                      variant="elevated"
+                      size="large"
+                      class="font-weight-bold"
+                    >
+                      <v-icon :icon="getDurationIcon()" start size="small" />
+                      {{ getDurationLabel() }}
+                    </v-chip>
+                  </v-card-text>
+                </v-card>
+              </div>
 
               <v-divider class="my-4" />
 
@@ -649,6 +748,8 @@ const showAddPaymentForm = ref(false)
 const selectedAppointment = ref<Appointment | null>(null)
 const savingTemplate = ref(false)
 const savingAppointment = ref(false)
+const removingDuplicates = ref(false)
+const clearingWeek = ref(false)
 const appointmentFormRef = ref()
 
 const appointmentForm = ref({
@@ -668,6 +769,14 @@ const payments = ref<Array<{
   date: Date
   notes: string
 }>>([])
+
+const sessionSummary = ref({
+  startTime: '',
+  endTime: '',
+  duration: null as number | null,
+  category: null as 'on-time' | 'partial' | 'overtime' | null,
+  notes: ''
+})
 
 const newPayment = ref({
   amount: 0,
@@ -694,18 +803,25 @@ const hebrewDays = [
 
 const defaultTimeSlots = ['11:00', '12:00', '14:30', '17:00', '18:00']
 
-// Dynamic time slots based on appointments and template
+// Dynamic time slots based on appointments and template ONLY (no default empty slots)
 const timeSlots = computed(() => {
-  const slots = new Set(defaultTimeSlots)
+  const slots = new Set<string>()
 
-  // Add times from appointments
+  // Add times from current week's appointments
   appointments.value.forEach(apt => {
     if (apt.time) slots.add(apt.time)
   })
 
-  // Add times from template
+  // Add times from template (for current week)
   templateSlots.value.forEach(slot => {
-    if (slot.time) slots.add(slot.time)
+    if (slot.time) {
+      // Only show if slot has clients defined
+      const hasClients = (slot.defaultClientIds && slot.defaultClientIds.length > 0)
+        || (slot as any).defaultClientId
+      if (hasClients) {
+        slots.add(slot.time)
+      }
+    }
   })
 
   // Sort times
@@ -737,7 +853,7 @@ const expectedWeeklyTarget = computed(() => {
     // Support both old and new format
     const clientIds = slot.defaultClientIds && slot.defaultClientIds.length > 0
       ? slot.defaultClientIds
-      : (slot.defaultClientId ? [slot.defaultClientId] : [])
+      : ((slot as any).defaultClientId ? [(slot as any).defaultClientId] : [])
 
     // Add price of first client only (as estimate, since not all clients come every week)
     if (clientIds.length > 0) {
@@ -762,7 +878,7 @@ const isWeekFilledFromTemplate = computed(() => {
 
       // Support both old and new format
       const hasClients = (slot.defaultClientIds && slot.defaultClientIds.length > 0)
-        || slot.defaultClientId
+        || (slot as any).defaultClientId
 
       if (!existing && hasClients) {
         allSlotsFilled = false
@@ -931,6 +1047,128 @@ function getPaymentStatusColor(appointment: Appointment | null | undefined): str
   }
 }
 
+// Session duration functions
+const calculateDuration = () => {
+  if (!sessionSummary.value.startTime || !sessionSummary.value.endTime) {
+    sessionSummary.value.duration = null
+    sessionSummary.value.category = null
+    return
+  }
+
+  const [startHour, startMin] = sessionSummary.value.startTime.split(':').map(Number)
+  const [endHour, endMin] = sessionSummary.value.endTime.split(':').map(Number)
+
+  const startMinutes = startHour * 60 + startMin
+  const endMinutes = endHour * 60 + endMin
+
+  const duration = endMinutes - startMinutes
+  sessionSummary.value.duration = duration > 0 ? duration : null
+
+  // Determine category
+  if (duration > 0) {
+    if (duration < 50) {
+      sessionSummary.value.category = 'partial'
+    } else if (duration <= 65) {
+      sessionSummary.value.category = 'on-time'
+    } else {
+      sessionSummary.value.category = 'overtime'
+    }
+  } else {
+    sessionSummary.value.category = null
+  }
+}
+
+const getDurationColor = (): string => {
+  if (!sessionSummary.value.category) return 'grey'
+
+  switch (sessionSummary.value.category) {
+    case 'on-time':
+      return 'success'
+    case 'partial':
+      return 'warning'
+    case 'overtime':
+      return 'info'
+    default:
+      return 'grey'
+  }
+}
+
+const getDurationLabel = (): string => {
+  if (!sessionSummary.value.category) return ''
+
+  switch (sessionSummary.value.category) {
+    case 'on-time':
+      return 'פגישה בזמן'
+    case 'partial':
+      return 'פגישה חלקית'
+    case 'overtime':
+      return 'פגישה חורגת מהזמן'
+    default:
+      return ''
+  }
+}
+
+const getDurationIcon = (): string => {
+  if (!sessionSummary.value.category) return 'mdi-clock-outline'
+
+  switch (sessionSummary.value.category) {
+    case 'on-time':
+      return 'mdi-check-circle'
+    case 'partial':
+      return 'mdi-alert-circle'
+    case 'overtime':
+      return 'mdi-clock-alert'
+    default:
+      return 'mdi-clock-outline'
+  }
+}
+
+// Duration functions for appointment cards
+const getDurationColorForAppointment = (appointment: Appointment | null | undefined): string => {
+  if (!appointment?.durationCategory) return 'grey'
+
+  switch (appointment.durationCategory) {
+    case 'on-time':
+      return 'success'
+    case 'partial':
+      return 'warning'
+    case 'overtime':
+      return 'info'
+    default:
+      return 'grey'
+  }
+}
+
+const getDurationLabelForAppointment = (appointment: Appointment | null | undefined): string => {
+  if (!appointment?.durationCategory) return ''
+
+  switch (appointment.durationCategory) {
+    case 'on-time':
+      return 'בזמן'
+    case 'partial':
+      return 'חלקית'
+    case 'overtime':
+      return 'חריגה'
+    default:
+      return ''
+  }
+}
+
+const getDurationIconForAppointment = (appointment: Appointment | null | undefined): string => {
+  if (!appointment?.durationCategory) return 'mdi-clock-outline'
+
+  switch (appointment.durationCategory) {
+    case 'on-time':
+      return 'mdi-check-circle'
+    case 'partial':
+      return 'mdi-alert-circle'
+    case 'overtime':
+      return 'mdi-clock-alert'
+    default:
+      return 'mdi-clock-outline'
+  }
+}
+
 // Methods
 const loadClients = async () => {
   try {
@@ -965,7 +1203,7 @@ const loadAppointments = async () => {
       aptDate.setHours(0, 0, 0, 0)
 
       // Support both old and new payment format
-      let paymentsArray = []
+      let paymentsArray: any[] = []
       if (data.payments && Array.isArray(data.payments)) {
         paymentsArray = data.payments.map((p: any) => ({
           id: p.id,
@@ -1040,6 +1278,9 @@ const loadTemplate = async () => {
         } as ScheduleSlot
       }
     })
+
+    // Sort template slots after loading
+    sortTemplateSlots()
   } catch (error) {
     console.error('Error loading template:', error)
   }
@@ -1065,6 +1306,20 @@ const addTemplateSlot = (dayIndex: number) => {
     defaultClientNames: []
   }
   templateSlots.value.push(newSlot)
+
+  // Sort template slots by day and time after adding
+  sortTemplateSlots()
+}
+
+const sortTemplateSlots = () => {
+  templateSlots.value.sort((a, b) => {
+    // First sort by day of week
+    if (a.dayOfWeek !== b.dayOfWeek) {
+      return a.dayOfWeek - b.dayOfWeek
+    }
+    // Then sort by time
+    return a.time.localeCompare(b.time)
+  })
 }
 
 const removeTemplateSlot = (dayIndex: number, slotIndex: number) => {
@@ -1184,20 +1439,29 @@ const fillWeekFromTemplate = async () => {
         // Support old format (single client) and new format (multiple clients)
         const clientIds = slot.defaultClientIds && slot.defaultClientIds.length > 0
           ? slot.defaultClientIds
-          : (slot.defaultClientId ? [slot.defaultClientId] : [])
+          : ((slot as any).defaultClientId ? [(slot as any).defaultClientId] : [])
 
         // Loop through all clients for this slot
         for (const clientId of clientIds) {
           const client = clients.value.find(c => c.id === clientId)
           if (!client) continue
 
-          // Check if THIS CLIENT already has an appointment at this time
-          const existingAppointment = appointments.value.find(apt => {
-            const aptDate = apt.date instanceof Date ? apt.date : new Date(apt.date)
-            return isSameDay(aptDate, day.date) && apt.time === slot.time && apt.clientId === client.id
-          })
+          // Check if THIS CLIENT already has an appointment at this time (check in Firebase directly)
+          const dayStart = new Date(day.date)
+          dayStart.setHours(0, 0, 0, 0)
+          const dayEnd = new Date(day.date)
+          dayEnd.setHours(23, 59, 59, 999)
 
-          if (existingAppointment) {
+          const existingAppointmentQuery = query(
+            collection(db, 'appointments'),
+            where('clientId', '==', client.id),
+            where('date', '>=', dayStart),
+            where('date', '<=', dayEnd),
+            where('time', '==', slot.time)
+          )
+          const existingAppointmentSnapshot = await getDocs(existingAppointmentQuery)
+
+          if (!existingAppointmentSnapshot.empty) {
             console.log(`⏭️ Skip ${client.name} - already has appointment at ${slot.time}`)
             continue
           }
@@ -1352,18 +1616,34 @@ const openAppointmentDialog = (date: Date, time: string) => {
         date: p.date instanceof Date ? p.date : new Date(p.date),
         notes: p.notes || ''
       }))
-    } else if (existing.paymentAmount && existing.paymentAmount > 0) {
-      // Old format - convert to new format
+    } else if ((existing as any).paymentAmount && (existing as any).paymentAmount > 0) {
+      // Old format - convert to new format (backward compatibility)
       payments.value = [{
         id: `payment_${Date.now()}`,
-        amount: existing.paymentAmount,
-        method: existing.paymentMethod || 'cash',
+        amount: (existing as any).paymentAmount,
+        method: (existing as any).paymentMethod || 'cash',
         date: aptDate,
         notes: ''
       }]
     } else {
       payments.value = []
     }
+
+    // Load session summary
+    sessionSummary.value = {
+      startTime: existing.startTime || '',
+      endTime: existing.endTime || '',
+      duration: existing.duration || null,
+      category: existing.durationCategory || null,
+      notes: existing.sessionSummaryNotes || ''
+    }
+
+    // Recalculate duration to ensure UI is in sync
+    if (existing.startTime && existing.endTime) {
+      calculateDuration()
+    }
+
+    console.log('📋 Loaded session summary:', sessionSummary.value)
   } else {
     selectedAppointment.value = null
     appointmentForm.value = {
@@ -1385,6 +1665,13 @@ const closeAppointmentDialog = () => {
   showAppointmentDetailsDialog.value = false
   selectedAppointment.value = null
   payments.value = []
+  sessionSummary.value = {
+    startTime: '',
+    endTime: '',
+    duration: null,
+    category: null,
+    notes: ''
+  }
   showAddPaymentForm.value = false
   newPayment.value = {
     amount: 0,
@@ -1491,7 +1778,7 @@ const saveAppointment = async () => {
       sessionNumber = clientAppointmentsSnapshot.size + 1
     }
 
-    const appointmentData = {
+    const appointmentData: any = {
       clientId: appointmentForm.value.clientId,
       clientName: client.name,
       date: appointmentDate,
@@ -1508,6 +1795,30 @@ const saveAppointment = async () => {
       })),
       sessionNumber: sessionNumber,
       notes: appointmentForm.value.notes || ''
+    }
+
+    // Add session summary if attended
+    if (appointmentForm.value.attended) {
+      appointmentData.startTime = sessionSummary.value.startTime || null
+      appointmentData.endTime = sessionSummary.value.endTime || null
+      appointmentData.duration = sessionSummary.value.duration || null
+      appointmentData.durationCategory = sessionSummary.value.category || null
+      appointmentData.sessionSummaryNotes = sessionSummary.value.notes || null
+
+      console.log('💾 Saving session summary:', {
+        startTime: appointmentData.startTime,
+        endTime: appointmentData.endTime,
+        duration: appointmentData.duration,
+        category: appointmentData.durationCategory,
+        notes: appointmentData.sessionSummaryNotes
+      })
+    } else {
+      // Clear session summary if not attended
+      appointmentData.startTime = null
+      appointmentData.endTime = null
+      appointmentData.duration = null
+      appointmentData.durationCategory = null
+      appointmentData.sessionSummaryNotes = null
     }
 
     if (selectedAppointment.value) {
@@ -1662,6 +1973,63 @@ const confirmDeleteAppointment = async () => {
   } catch (error) {
     console.error('Error deleting appointment:', error)
     showSnackbar('שגיאה במחיקת הפגישה', 'error')
+  }
+}
+
+const clearCurrentWeek = async () => {
+  if (!confirm('⚠️ פעולה זו תמחק את כל הפגישות בשבוע הנוכחי!\n\n(התבנית השבועית תישאר)\n\nלהמשיך?')) return
+
+  clearingWeek.value = true
+  try {
+    // Get week start and end
+    const weekStart = new Date(currentWeekStart.value)
+    weekStart.setHours(0, 0, 0, 0)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+    weekEnd.setHours(0, 0, 0, 0)
+
+    // Query appointments in current week
+    const weekAppointmentsQuery = query(
+      collection(db, 'appointments'),
+      where('date', '>=', weekStart),
+      where('date', '<', weekEnd)
+    )
+    const weekAppointmentsSnapshot = await getDocs(weekAppointmentsQuery)
+
+    let deletedCount = 0
+
+    // Delete all appointments in current week
+    for (const docSnap of weekAppointmentsSnapshot.docs) {
+      const appointment = docSnap.data() as Appointment
+
+      // If appointment was attended, reverse balance change
+      if (appointment.attended) {
+        const client = clients.value.find(c => c.id === appointment.clientId)
+        if (client) {
+          const totalPaid = appointment.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+          const balanceChange = totalPaid - appointment.price
+
+          await updateDoc(doc(db, 'clients', client.id), {
+            balance: client.balance - balanceChange,
+            totalSessions: Math.max(0, client.totalSessions - 1)
+          })
+        }
+      }
+
+      await deleteDoc(docSnap.ref)
+      deletedCount++
+    }
+
+    await loadAppointments()
+    await loadClients()
+    await updateWeeklyPrizeActual()
+
+    showSnackbar(`✅ נמחקו ${deletedCount} פגישות מהשבוע הנוכחי!\n\nעכשיו אפשר למלא מהתבנית 🎯`, 'success')
+  } catch (error) {
+    console.error('Error clearing week:', error)
+    showSnackbar('שגיאה במחיקת השבוע: ' + error, 'error')
+  } finally {
+    clearingWeek.value = false
   }
 }
 

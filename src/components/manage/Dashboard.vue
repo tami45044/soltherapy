@@ -453,14 +453,32 @@ const stats = computed(() => {
   }
 
   // חישובים שבועיים
+  // סכום מצופה = כל הפגישות המתוכננות
+  // סכום בפועל = רק תשלומים שנעשו בפועל
   const weekExpected = weekAppts.reduce((sum, a) => sum + a.price, 0)
   const weekActual = calculateActualPayments(weekAppts)
   const weekPercentage = weekExpected > 0 ? Math.round((weekActual / weekExpected) * 100) : 0
 
+  console.log('📊 Dashboard Weekly Stats:', {
+    weekAppts: weekAppts.length,
+    weekExpected,
+    weekActual,
+    weekPercentage
+  })
+
   // חישובים חודשיים
+  // סכום מצופה = כל הפגישות המתוכננות
+  // סכום בפועל = רק תשלומים שנעשו בפועל
   const monthExpected = monthAppts.reduce((sum, a) => sum + a.price, 0)
   const monthActual = calculateActualPayments(monthAppts)
   const monthPercentage = monthExpected > 0 ? Math.round((monthActual / monthExpected) * 100) : 0
+
+  console.log('📊 Dashboard Monthly Stats:', {
+    monthAppts: monthAppts.length,
+    monthExpected,
+    monthActual,
+    monthPercentage
+  })
 
   const attendedCount = monthAppts.filter(a => a.attended).length
   const attendanceRate = monthAppts.length > 0
@@ -501,7 +519,9 @@ function getWeekStart(date: Date): Date {
   const d = new Date(date)
   const day = d.getDay()
   const diff = d.getDate() - day
-  return new Date(d.setDate(diff))
+  const weekStart = new Date(d.setDate(diff))
+  weekStart.setHours(0, 0, 0, 0)
+  return weekStart
 }
 
 function isSameDay(date1: Date, date2: Date): boolean {
@@ -529,14 +549,23 @@ const loadData = async () => {
       createdAt: doc.data().createdAt?.toDate() || new Date()
     })) as Client[]
 
-    // Load appointments for current month
-    const monthStart = new Date()
-    monthStart.setDate(1)
-    monthStart.setHours(0, 0, 0, 0)
+    // Load appointments from week start (to include all current week appointments)
+    const now = new Date()
+    const weekStart = getWeekStart(now)
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    // Use the earlier date (either week start or month start)
+    const loadFrom = weekStart < monthStart ? weekStart : monthStart
+
+    console.log('📅 Dashboard loading appointments from:', loadFrom, {
+      weekStart,
+      monthStart,
+      loadFrom
+    })
 
     const q = query(
       collection(db, 'appointments'),
-      where('date', '>=', monthStart),
+      where('date', '>=', loadFrom),
       orderBy('date', 'desc')
     )
 

@@ -27,7 +27,7 @@
 
     <!-- Quick Actions -->
     <v-row class="mb-4">
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="4">
         <v-btn
           color="primary"
           block
@@ -39,7 +39,7 @@
           הגדר תבנית שבועית
         </v-btn>
       </v-col>
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="4">
         <v-btn
           color="success"
           block
@@ -53,7 +53,7 @@
           מלא שבוע מתבנית
         </v-btn>
       </v-col>
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="4">
         <v-btn
           color="info"
           block
@@ -63,20 +63,6 @@
         >
           <v-icon icon="mdi-calendar-plus" />
           הוסף פגישה
-        </v-btn>
-      </v-col>
-      <v-col cols="12" md="3">
-        <v-btn
-          color="error"
-          block
-          size="large"
-          rounded="xl"
-          variant="outlined"
-          @click="clearCurrentWeek"
-          :loading="clearingWeek"
-        >
-          <v-icon icon="mdi-delete-sweep" />
-          נקה שבוע נוכחי
         </v-btn>
       </v-col>
     </v-row>
@@ -117,7 +103,7 @@
                     {{ getAppointment(day.date, time)?.clientName }}
                   </div>
                   <div class="appointment-session-number">
-                    פגישה מס' {{ getAppointment(day.date, time)?.sessionNumber }}
+                    פגישה מס' {{ getDisplaySessionNumber(getAppointment(day.date, time)) }}
                   </div>
                   <div class="appointment-details">
                     <!-- סטטוס נוכחות -->
@@ -748,8 +734,6 @@ const showAddPaymentForm = ref(false)
 const selectedAppointment = ref<Appointment | null>(null)
 const savingTemplate = ref(false)
 const savingAppointment = ref(false)
-const removingDuplicates = ref(false)
-const clearingWeek = ref(false)
 const appointmentFormRef = ref()
 
 const appointmentForm = ref({
@@ -1293,6 +1277,29 @@ const getAppointment = (date: Date, time: string): Appointment | undefined => {
   })
 }
 
+// חישוב מספר פגישה דינמי לפי כמה פגישות הלקוח הגיע עד תאריך זה
+const getDisplaySessionNumber = (appointment: Appointment | undefined): number => {
+  if (!appointment) return 1
+
+  // Count how many appointments this client attended BEFORE this date
+  const attendedBefore = appointments.value.filter(apt => {
+    if (apt.clientId !== appointment.clientId) return false
+    if (!apt.attended) return false
+
+    const aptDate = apt.date instanceof Date ? apt.date : new Date(apt.date)
+    const currentDate = appointment.date instanceof Date ? appointment.date : new Date(appointment.date)
+
+    // Include appointments before this one, or same date but earlier time
+    if (aptDate < currentDate) return true
+    if (isSameDay(aptDate, currentDate) && apt.time < appointment.time) return true
+    if (isSameDay(aptDate, currentDate) && apt.time === appointment.time && apt.id === appointment.id) return true
+
+    return false
+  }).length
+
+  return attendedBefore > 0 ? attendedBefore : 1
+}
+
 const getTemplateSlotsForDay = (dayIndex: number): ScheduleSlot[] => {
   return templateSlots.value.filter(slot => slot.dayOfWeek === dayIndex)
 }
@@ -1474,20 +1481,24 @@ const fillWeekFromTemplate = async () => {
             continue
           }
 
-          // Calculate session number for this client
+          // Calculate session number for this client (count only attended appointments)
           if (!clientSessionCounts[client.id]) {
-            // First time seeing this client - count existing appointments
+            // First time seeing this client - count existing ATTENDED appointments
             const clientAppointmentsQuery = query(
               collection(db, 'appointments'),
               where('clientId', '==', client.id)
             )
             const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
-            clientSessionCounts[client.id] = clientAppointmentsSnapshot.size
+            // Count only appointments where the client attended
+            const attendedCount = clientAppointmentsSnapshot.docs.filter(
+              doc => doc.data().attended === true
+            ).length
+            clientSessionCounts[client.id] = attendedCount
           }
 
-          // Increment for this new appointment
-          clientSessionCounts[client.id]++
-          const sessionNumber = clientSessionCounts[client.id]
+          // Don't increment here - session number will be assigned when they attend
+          // For now, assign the next potential session number
+          const sessionNumber = clientSessionCounts[client.id] + 1
 
           // Create date at midnight
           const appointmentDate = new Date(day.date)
@@ -1581,11 +1592,9 @@ const updateWeeklyTargetFromAppointments = async () => {
       totalWeeklyTarget += appointment.price || 0
     })
 
-    // Only update if there are appointments
-    if (totalWeeklyTarget > 0) {
-      await updateWeeklyTarget(totalWeeklyTarget)
-      console.log('✅ Updated weekly target:', totalWeeklyTarget)
-    }
+    // Always update, even if target is 0 (no appointments)
+    await updateWeeklyTarget(totalWeeklyTarget)
+    console.log('✅ Updated weekly target:', totalWeeklyTarget)
   } catch (error) {
     console.error('Error updating weekly target from appointments:', error)
   }
@@ -1766,16 +1775,20 @@ const saveAppointment = async () => {
     // Update paid status based on total payments
     appointmentForm.value.paid = isPaidInFull.value
 
-    // Calculate correct session number for new appointments
+    // Calculate correct session number (count only attended appointments)
     let sessionNumber = selectedAppointment.value?.sessionNumber
     if (!selectedAppointment.value) {
-      // For new appointments, count ALL existing appointments for this client
+      // For new appointments, count only ATTENDED appointments for this client
       const clientAppointmentsQuery = query(
         collection(db, 'appointments'),
         where('clientId', '==', appointmentForm.value.clientId)
       )
       const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
-      sessionNumber = clientAppointmentsSnapshot.size + 1
+      // Count only attended appointments
+      const attendedCount = clientAppointmentsSnapshot.docs.filter(
+        doc => doc.data().attended === true
+      ).length
+      sessionNumber = attendedCount + 1
     }
 
     const appointmentData: any = {
@@ -1857,6 +1870,10 @@ const saveAppointment = async () => {
 
     await loadAppointments()
     await loadClients() // Reload to see updated balance
+
+    // Recalculate weekly target (in case price changed or appointment was added/removed)
+    await updateWeeklyTargetFromAppointments()
+
     await updateWeeklyPrizeActual() // Update weekly prize actual amount
     closeAppointmentDialog()
   } catch (error) {
@@ -1969,67 +1986,14 @@ const confirmDeleteAppointment = async () => {
     closeAppointmentDialog()
     await loadAppointments()
     await loadClients() // Reload to see updated balance
+
+    // Recalculate weekly target from remaining appointments
+    await updateWeeklyTargetFromAppointments()
+
     await updateWeeklyPrizeActual() // Update weekly prize actual amount
   } catch (error) {
     console.error('Error deleting appointment:', error)
     showSnackbar('שגיאה במחיקת הפגישה', 'error')
-  }
-}
-
-const clearCurrentWeek = async () => {
-  if (!confirm('⚠️ פעולה זו תמחק את כל הפגישות בשבוע הנוכחי!\n\n(התבנית השבועית תישאר)\n\nלהמשיך?')) return
-
-  clearingWeek.value = true
-  try {
-    // Get week start and end
-    const weekStart = new Date(currentWeekStart.value)
-    weekStart.setHours(0, 0, 0, 0)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 7)
-    weekEnd.setHours(0, 0, 0, 0)
-
-    // Query appointments in current week
-    const weekAppointmentsQuery = query(
-      collection(db, 'appointments'),
-      where('date', '>=', weekStart),
-      where('date', '<', weekEnd)
-    )
-    const weekAppointmentsSnapshot = await getDocs(weekAppointmentsQuery)
-
-    let deletedCount = 0
-
-    // Delete all appointments in current week
-    for (const docSnap of weekAppointmentsSnapshot.docs) {
-      const appointment = docSnap.data() as Appointment
-
-      // If appointment was attended, reverse balance change
-      if (appointment.attended) {
-        const client = clients.value.find(c => c.id === appointment.clientId)
-        if (client) {
-          const totalPaid = appointment.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
-          const balanceChange = totalPaid - appointment.price
-
-          await updateDoc(doc(db, 'clients', client.id), {
-            balance: client.balance - balanceChange,
-            totalSessions: Math.max(0, client.totalSessions - 1)
-          })
-        }
-      }
-
-      await deleteDoc(docSnap.ref)
-      deletedCount++
-    }
-
-    await loadAppointments()
-    await loadClients()
-    await updateWeeklyPrizeActual()
-
-    showSnackbar(`✅ נמחקו ${deletedCount} פגישות מהשבוע הנוכחי!\n\nעכשיו אפשר למלא מהתבנית 🎯`, 'success')
-  } catch (error) {
-    console.error('Error clearing week:', error)
-    showSnackbar('שגיאה במחיקת השבוע: ' + error, 'error')
-  } finally {
-    clearingWeek.value = false
   }
 }
 

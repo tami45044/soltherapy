@@ -337,6 +337,7 @@ const prizeSettings = ref({
 const unlocking = ref(false)
 const savingSettings = ref(false)
 const dailyPayments = ref<Record<string, number>>({}) // סכום תשלומים לכל יום
+const dailyTargets = ref<Record<string, number>>({}) // יעד (סכום מחירי הפגישות) לכל יום
 
 const snackbar = ref({
   show: false,
@@ -394,12 +395,10 @@ const weekDays = computed(() => {
     const dateStr = date.toISOString().split('T')[0]
 
     const paidAmount = dailyPayments.value[dateStr] || 0
+    const targetForDay = dailyTargets.value[dateStr] || 0 // יעד לפי פגישות בפועל
     const isPast = date < today
     const isToday = date.getTime() === today.getTime()
 
-    // יום עבודה (ראשון-חמישי) או שישי/שבת
-    const isWorkDay = i >= 0 && i <= 4
-    const targetForDay = isWorkDay ? dailyTarget.value : 0
     const metTarget = paidAmount >= targetForDay && targetForDay > 0
 
     days.push({
@@ -541,11 +540,16 @@ const calculateWeeklyActual = async () => {
     const snapshot = await getDocs(q)
     let totalPaid = 0
     const dailyTotals: Record<string, number> = {}
+    const dailyTargetTotals: Record<string, number> = {}
 
     snapshot.forEach((docSnapshot) => {
       const appointment = docSnapshot.data()
       const appointmentDate = appointment.date?.toDate ? appointment.date.toDate() : new Date(appointment.date)
       const dateStr = appointmentDate.toISOString().split('T')[0]
+
+      // Sum price for daily target (all appointments)
+      const price = appointment.price || 0
+      dailyTargetTotals[dateStr] = (dailyTargetTotals[dateStr] || 0) + price
 
       // Sum all payments for this appointment
       if (appointment.payments && Array.isArray(appointment.payments)) {
@@ -557,8 +561,12 @@ const calculateWeeklyActual = async () => {
       }
     })
 
-    // Update daily payments ref
+    // Update daily payments and targets refs
     dailyPayments.value = dailyTotals
+    dailyTargets.value = dailyTargetTotals
+
+    console.log('📊 WeeklyPrize - Daily Targets:', dailyTargetTotals)
+    console.log('📊 WeeklyPrize - Daily Payments:', dailyTotals)
 
     // Update prize with actual amount
     if (currentPrize.value.id) {

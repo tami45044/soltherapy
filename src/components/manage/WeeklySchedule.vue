@@ -67,6 +67,15 @@
       </v-col>
     </v-row>
 
+    <!-- Admin Tools - DISABLED TEMPORARILY -->
+    <v-row v-if="false" class="mb-4">
+      <v-col cols="12">
+        <v-alert type="error" variant="tonal" rounded="lg">
+          <strong>⚠️ כלי המנהל הושבתו זמנית</strong>
+        </v-alert>
+      </v-col>
+    </v-row>
+
     <!-- Weekly Calendar -->
     <v-card rounded="xl" elevation="4">
       <v-card-text class="pa-0">
@@ -96,50 +105,74 @@
                   class="appointment-card"
                   :class="{
                     'attended': getAppointment(day.date, time)?.attended,
-                    'paid': getAppointment(day.date, time)?.paid
+                    'paid': getAppointment(day.date, time)?.paid,
+                    'group-session': getAppointment(day.date, time)?.isGroup
                   }"
                 >
-                  <div class="appointment-name">
-                    {{ getAppointment(day.date, time)?.clientName }}
+                  <!-- Group Session Display -->
+                  <div v-if="getAppointment(day.date, time)?.isGroup" class="group-appointment">
+                    <div class="appointment-name d-flex align-center">
+                      <v-icon icon="mdi-account-group" size="small" color="primary" class="ml-1" />
+                      קבוצה טיפולית
+                    </div>
+                    <div class="appointment-session-number">
+                      {{ getAppointment(day.date, time)?.groupParticipants?.length || 0 }} משתתפים
+                    </div>
+                    <div class="appointment-details">
+                      <v-chip
+                        size="x-small"
+                        color="primary"
+                        variant="tonal"
+                      >
+                        ₪{{ getAppointment(day.date, time)?.groupPrice }} למשתתף
+                      </v-chip>
+                    </div>
                   </div>
-                  <div class="appointment-session-number">
-                    פגישה מס' {{ getDisplaySessionNumber(getAppointment(day.date, time)) }}
-                  </div>
-                  <div class="appointment-details">
-                    <!-- סטטוס נוכחות -->
-                    <v-chip
-                      v-if="getAppointment(day.date, time)?.attended"
-                      size="x-small"
-                      color="success"
-                    >
-                      הגיע
-                    </v-chip>
-                    <v-chip
-                      v-if="!getAppointment(day.date, time)?.attended && isAppointmentPast(day.date, time)"
-                      size="x-small"
-                      color="error"
-                    >
-                      לא הגיע
-                    </v-chip>
 
-                    <!-- סטטוס תשלום -->
-                    <v-chip
-                      v-if="getAppointment(day.date, time)?.attended"
-                      size="x-small"
-                      :color="getPaymentStatusColor(getAppointment(day.date, time))"
-                    >
-                      {{ getPaymentStatusText(getAppointment(day.date, time)) }}
-                    </v-chip>
+                  <!-- Regular Appointment Display -->
+                  <div v-else>
+                    <div class="appointment-name">
+                      {{ getAppointment(day.date, time)?.clientName }}
+                    </div>
+                    <div class="appointment-session-number">
+                      פגישה מס' {{ getDisplaySessionNumber(getAppointment(day.date, time)) }}
+                    </div>
+                    <div class="appointment-details">
+                      <!-- סטטוס נוכחות -->
+                      <v-chip
+                        v-if="getAppointment(day.date, time)?.attended"
+                        size="x-small"
+                        color="success"
+                      >
+                        הגיע
+                      </v-chip>
+                      <v-chip
+                        v-if="!getAppointment(day.date, time)?.attended && isAppointmentPast(day.date, time)"
+                        size="x-small"
+                        color="error"
+                      >
+                        לא הגיע
+                      </v-chip>
 
-                    <!-- תגית משך פגישה -->
-                    <v-chip
-                      v-if="getAppointment(day.date, time)?.durationCategory"
-                      size="x-small"
-                      :color="getDurationColorForAppointment(getAppointment(day.date, time))"
-                    >
-                      <v-icon :icon="getDurationIconForAppointment(getAppointment(day.date, time))" size="x-small" start />
-                      {{ getDurationLabelForAppointment(getAppointment(day.date, time)) }}
-                    </v-chip>
+                      <!-- סטטוס תשלום -->
+                      <v-chip
+                        v-if="getAppointment(day.date, time)?.attended"
+                        size="x-small"
+                        :color="getPaymentStatusColor(getAppointment(day.date, time))"
+                      >
+                        {{ getPaymentStatusText(getAppointment(day.date, time)) }}
+                      </v-chip>
+
+                      <!-- תגית משך פגישה -->
+                      <v-chip
+                        v-if="getAppointment(day.date, time)?.durationCategory"
+                        size="x-small"
+                        :color="getDurationColorForAppointment(getAppointment(day.date, time))"
+                      >
+                        <v-icon :icon="getDurationIconForAppointment(getAppointment(day.date, time))" size="x-small" start />
+                        {{ getDurationLabelForAppointment(getAppointment(day.date, time)) }}
+                      </v-chip>
+                    </div>
                   </div>
                 </div>
                 <div v-else class="empty-slot">
@@ -193,17 +226,29 @@
                 </v-chip>
               </v-expansion-panel-title>
               <v-expansion-panel-text class="template-panel-content">
-                <v-btn
-                  color="primary"
-                  size="small"
-                  rounded="lg"
-                  class="mb-3"
-                  variant="flat"
-                  @click="addTemplateSlot(day.index)"
-                >
-                  <v-icon icon="mdi-plus" size="small" />
-                  הוסף שעה
-                </v-btn>
+                <div class="d-flex gap-3 mb-3">
+                  <v-btn
+                    color="primary"
+                    size="small"
+                    rounded="lg"
+                    variant="flat"
+                    @click="addTemplateSlot(day.index)"
+                    class="ml-2"
+                  >
+                    <v-icon icon="mdi-plus" size="small" />
+                    הוסף שעה
+                  </v-btn>
+                  <v-btn
+                    color="secondary"
+                    size="small"
+                    rounded="lg"
+                    variant="outlined"
+                    @click="sortTemplateSlots"
+                  >
+                    <v-icon icon="mdi-sort-clock-ascending" size="small" />
+                    מיין לפי שעה
+                  </v-btn>
+                </div>
 
                 <v-row
                   v-for="(slot, idx) in getTemplateSlotsForDay(day.index)"
@@ -211,7 +256,8 @@
                   class="mb-2 template-slot-row"
                   align="center"
                 >
-                  <v-col cols="4">
+                  <!-- שעה -->
+                  <v-col cols="2">
                     <v-text-field
                       v-model="slot.time"
                       label="שעה"
@@ -219,38 +265,111 @@
                       variant="outlined"
                       density="compact"
                       hide-details
-                      @change="sortTemplateSlots"
                     />
                   </v-col>
-                  <v-col cols="6">
-                    <v-autocomplete
-                      v-model="slot.defaultClientIds"
-                      label="לקוחות (לפי תדירות)"
-                      :items="clientOptions"
-                      item-title="name"
-                      item-value="id"
-                      variant="outlined"
-                      density="compact"
-                      multiple
-                      chips
-                      clearable
-                      hide-details
-                      auto-select-first
-                      placeholder="הקלד לחיפוש..."
-                    >
-                      <template #chip="{ props, item }">
-                        <v-chip
-                          v-bind="props"
-                          size="small"
-                          closable
-                          @click:close="removeClientFromSlot(slot, item.value)"
-                        >
-                          {{ item.title }}
-                        </v-chip>
-                      </template>
-                    </v-autocomplete>
-                  </v-col>
-                  <v-col cols="2" class="d-flex justify-center">
+
+                  <!-- קבוצה טיפולית -->
+                  <template v-if="slot.isGroup">
+                    <v-col cols="2">
+                      <v-switch
+                        v-model="slot.isGroup"
+                        label="קבוצה"
+                        color="primary"
+                        density="compact"
+                        hide-details
+                        :true-icon="'mdi-account-group'"
+                      />
+                    </v-col>
+                    <v-col cols="2">
+                      <v-text-field
+                        v-model.number="slot.groupPrice"
+                        label="מחיר"
+                        type="number"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        prefix="₪"
+                      />
+                    </v-col>
+                    <v-col cols="5">
+                      <v-autocomplete
+                        v-model="slot.groupParticipantIds"
+                        label="משתתפים"
+                        :items="clientOptions"
+                        item-title="name"
+                        item-value="id"
+                        variant="outlined"
+                        density="compact"
+                        multiple
+                        chips
+                        clearable
+                        hide-details
+                        placeholder="בחר משתתפים..."
+                      >
+                        <template #prepend-inner>
+                          <v-icon icon="mdi-account-group" color="primary" size="small" />
+                        </template>
+                        <template #chip="{ props, item }">
+                          <v-chip
+                            v-bind="props"
+                            size="small"
+                            closable
+                            color="primary"
+                            variant="tonal"
+                          >
+                            {{ item.title }}
+                          </v-chip>
+                        </template>
+                      </v-autocomplete>
+                    </v-col>
+                  </template>
+
+                  <!-- פגישה רגילה -->
+                  <template v-else>
+                    <v-col cols="9">
+                      <v-row align="center" no-gutters>
+                        <v-col cols="3">
+                          <v-switch
+                            v-model="slot.isGroup"
+                            label="קבוצה"
+                            color="primary"
+                            density="compact"
+                            hide-details
+                          />
+                        </v-col>
+                        <v-col cols="9">
+                          <v-autocomplete
+                            v-model="slot.defaultClientIds"
+                            label="לקוחות (לפי תדירות)"
+                            :items="clientOptions"
+                            item-title="name"
+                            item-value="id"
+                            variant="outlined"
+                            density="compact"
+                            multiple
+                            chips
+                            clearable
+                            hide-details
+                            placeholder="בחר לקוחות..."
+                          >
+                            <template #chip="{ props, item }">
+                              <v-chip
+                                v-bind="props"
+                                size="small"
+                                closable
+                                @click:close="removeClientFromSlot(slot, item.value)"
+                              >
+                                {{ item.title }}
+                              </v-chip>
+                            </template>
+                          </v-autocomplete>
+                        </v-col>
+                      </v-row>
+                    </v-col>
+                  </template>
+
+                  <!-- כפתור מחיקה -->
+                  <v-col cols="1" class="d-flex justify-center">
                     <v-btn
                       icon
                       color="error"
@@ -316,7 +435,26 @@
                 פרטי פגישה
               </h4>
 
+              <!-- Toggle for Group Session -->
+              <v-switch
+                v-model="appointmentForm.isGroup"
+                color="primary"
+                density="compact"
+                class="mb-4"
+                hide-details
+                :disabled="!!selectedAppointment"
+              >
+                <template #label>
+                  <div class="d-flex align-center">
+                    <v-icon icon="mdi-account-group" size="small" class="ml-2" />
+                    <span class="font-weight-medium">קבוצה טיפולית</span>
+                  </div>
+                </template>
+              </v-switch>
+
+              <!-- Regular Appointment Fields -->
               <v-select
+                v-if="!appointmentForm.isGroup"
                 v-model="appointmentForm.clientId"
                 label="בחר לקוח *"
                 :items="clientOptions"
@@ -324,7 +462,7 @@
                 item-value="id"
                 variant="outlined"
                 rounded="lg"
-                :rules="[rules.required]"
+                :rules="appointmentForm.isGroup ? [] : [rules.required]"
                 class="mb-4"
                 @update:model-value="updateClientPrice"
               >
@@ -341,6 +479,43 @@
                   />
                 </template>
               </v-select>
+
+              <!-- Group Appointment Fields -->
+              <div v-if="appointmentForm.isGroup">
+                <v-text-field
+                  v-model.number="appointmentForm.groupPrice"
+                  label="מחיר למשתתף *"
+                  type="number"
+                  variant="outlined"
+                  rounded="lg"
+                  prefix="₪"
+                  class="mb-4"
+                  hide-details
+                >
+                  <template #prepend-inner>
+                    <v-icon icon="mdi-cash" color="primary" />
+                  </template>
+                </v-text-field>
+
+                <v-autocomplete
+                  v-model="appointmentForm.groupParticipantIds"
+                  label="בחר משתתפים *"
+                  :items="clientOptions"
+                  item-title="name"
+                  item-value="id"
+                  variant="outlined"
+                  rounded="lg"
+                  multiple
+                  chips
+                  closable-chips
+                  class="mb-4"
+                  hide-details
+                >
+                  <template #prepend-inner>
+                    <v-icon icon="mdi-account-multiple" color="primary" />
+                  </template>
+                </v-autocomplete>
+              </div>
 
               <v-row>
                 <v-col cols="6">
@@ -376,6 +551,7 @@
               </v-row>
 
               <v-text-field
+                v-if="!appointmentForm.isGroup"
                 v-model.number="appointmentForm.price"
                 label="תעריף"
                 type="number"
@@ -708,6 +884,240 @@
       </v-card>
     </v-dialog>
 
+    <!-- Group Session Dialog -->
+    <v-dialog
+      v-model="showGroupDialog"
+      max-width="800"
+      @click:outside="closeGroupDialog"
+    >
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right section-header-clean">
+          <v-icon icon="mdi-account-group" size="24" color="primary" style="opacity: 0.8;" />
+          <span class="text-h6">ניהול קבוצה טיפולית</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <v-alert type="info" variant="tonal" class="mb-4">
+            <div class="text-body-2">
+              <strong>{{ groupForm.date }} | {{ groupForm.time }}</strong>
+            </div>
+            <div class="text-body-2 mt-1">
+              מחיר למשתתף: <strong>₪{{ groupForm.groupPrice }}</strong>
+            </div>
+          </v-alert>
+
+          <!-- Add one-time participant -->
+          <v-card variant="outlined" class="mb-4" rounded="lg">
+            <v-card-text>
+              <h4 class="text-subtitle-2 font-weight-bold mb-3">
+                <v-icon icon="mdi-account-plus" size="small" />
+                הוסף משתתף חד-פעמי
+              </h4>
+              <v-row>
+                <v-col cols="10">
+                  <v-autocomplete
+                    v-model="oneTimeParticipant"
+                    label="בחר לקוח"
+                    :items="availableClientsForGroup"
+                    item-title="name"
+                    item-value="id"
+                    variant="outlined"
+                    density="compact"
+                    clearable
+                    placeholder="הקלד לחיפוש..."
+                  />
+                </v-col>
+                <v-col cols="2" class="d-flex align-center">
+                  <v-btn
+                    color="primary"
+                    icon="mdi-plus"
+                    :disabled="!oneTimeParticipant"
+                    @click="addOneTimeParticipant"
+                  />
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+
+          <!-- Participants List -->
+          <h4 class="text-subtitle-1 font-weight-bold mb-3">
+            משתתפים ({{ groupParticipants.length }})
+          </h4>
+
+          <v-list>
+            <v-list-item
+              v-for="(participant, idx) in groupParticipants"
+              :key="participant.clientId"
+              class="mb-2 pa-3"
+              rounded="lg"
+              :style="{
+                border: '1px solid #e0e0e0',
+                background: participant.attended ? 'rgba(76, 175, 80, 0.05)' : 'white'
+              }"
+            >
+              <template #prepend>
+                <v-avatar :color="participant.isRegular ? 'primary' : 'grey'" size="40">
+                  <v-icon :icon="participant.isRegular ? 'mdi-account-star' : 'mdi-account'" />
+                </v-avatar>
+              </template>
+
+              <v-list-item-title class="font-weight-bold">
+                {{ participant.clientName }}
+                <v-chip
+                  v-if="participant.isRegular"
+                  size="x-small"
+                  color="primary"
+                  variant="tonal"
+                  class="mr-2"
+                >
+                  קבוע
+                </v-chip>
+              </v-list-item-title>
+
+              <v-list-item-subtitle>
+                <div class="d-flex gap-2 mt-2">
+                  <v-chip
+                    size="small"
+                    :color="participant.attended ? 'success' : 'grey'"
+                    @click="toggleParticipantAttendance(idx)"
+                    style="cursor: pointer;"
+                  >
+                    <v-icon :icon="participant.attended ? 'mdi-check-circle' : 'mdi-circle-outline'" size="small" start />
+                    {{ participant.attended ? 'הגיע' : 'לא הגיע' }}
+                  </v-chip>
+
+                  <v-chip
+                    v-if="participant.attended"
+                    size="small"
+                    :color="getParticipantPaymentColor(participant)"
+                  >
+                    {{ getParticipantPaymentText(participant) }}
+                  </v-chip>
+                </div>
+              </v-list-item-subtitle>
+
+              <template #append>
+                <div class="d-flex flex-column gap-2">
+                  <v-btn
+                    v-if="participant.attended"
+                    size="small"
+                    color="primary"
+                    variant="tonal"
+                    @click="openParticipantPayment(idx)"
+                  >
+                    <v-icon icon="mdi-cash-plus" size="small" />
+                    תשלום
+                  </v-btn>
+                  <v-btn
+                    v-if="!participant.isRegular"
+                    size="small"
+                    color="error"
+                    variant="text"
+                    icon="mdi-delete"
+                    @click="removeParticipant(idx)"
+                  />
+                </div>
+              </template>
+            </v-list-item>
+          </v-list>
+
+          <!-- Summary -->
+          <v-card variant="tonal" color="primary" class="mt-4" rounded="lg">
+            <v-card-text>
+              <div class="text-body-1">
+                <strong>סיכום:</strong>
+              </div>
+              <div class="text-body-2 mt-2">
+                משתתפים שהגיעו: <strong>{{ attendedCount }}</strong> / {{ groupParticipants.length }}
+              </div>
+              <div class="text-body-2">
+                הכנסה צפויה: <strong>₪{{ (attendedCount * groupForm.groupPrice).toLocaleString() }}</strong>
+              </div>
+              <div class="text-body-2">
+                שולם בפועל: <strong>₪{{ totalGroupPaid.toLocaleString() }}</strong>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0">
+          <v-btn
+            color="error"
+            variant="outlined"
+            rounded="xl"
+            @click="confirmDeleteGroupSession"
+          >
+            <v-icon icon="mdi-delete" />
+            מחק קבוצה
+          </v-btn>
+          <v-spacer />
+          <v-btn
+            variant="outlined"
+            rounded="xl"
+            @click="closeGroupDialog"
+          >
+            ביטול
+          </v-btn>
+          <v-btn
+            color="primary"
+            rounded="xl"
+            variant="elevated"
+            :loading="savingAppointment"
+            @click="saveGroupSession"
+          >
+            <v-icon icon="mdi-content-save" />
+            שמור
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Participant Payment Dialog -->
+    <v-dialog v-model="showParticipantPaymentDialog" max-width="500">
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right">
+          <v-icon icon="mdi-cash-plus" />
+          תשלום - {{ selectedParticipant?.clientName }}
+        </v-card-title>
+        <v-card-text class="pa-6">
+          <v-text-field
+            v-model.number="participantPaymentForm.amount"
+            label="סכום"
+            type="number"
+            variant="outlined"
+            rounded="lg"
+            prefix="₪"
+            class="mb-4"
+          />
+          <v-select
+            v-model="participantPaymentForm.method"
+            label="אמצעי תשלום"
+            :items="paymentMethods"
+            variant="outlined"
+            rounded="lg"
+            class="mb-4"
+          />
+          <v-textarea
+            v-model="participantPaymentForm.notes"
+            label="הערות"
+            variant="outlined"
+            rounded="lg"
+            rows="2"
+          />
+        </v-card-text>
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer />
+          <v-btn variant="outlined" rounded="xl" @click="closeParticipantPaymentDialog">
+            ביטול
+          </v-btn>
+          <v-btn color="primary" rounded="xl" @click="addParticipantPayment">
+            <v-icon icon="mdi-check" />
+            הוסף
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">
       {{ snackbar.message }}
@@ -731,10 +1141,15 @@ const showAppointmentDetailsDialog = ref(false)
 const showAddAppointmentDialog = ref(false)
 const showAddClientQuick = ref(false)
 const showAddPaymentForm = ref(false)
+const showGroupDialog = ref(false)
+const showParticipantPaymentDialog = ref(false)
+const showAdminTools = ref(false) // הושבת לצמיתות - גרם לאיבוד נתונים
 const selectedAppointment = ref<Appointment | null>(null)
 const savingTemplate = ref(false)
 const savingAppointment = ref(false)
 const appointmentFormRef = ref()
+const oneTimeParticipant = ref('')
+const selectedParticipantIndex = ref<number | null>(null)
 
 const appointmentForm = ref({
   clientId: '',
@@ -743,7 +1158,10 @@ const appointmentForm = ref({
   price: 400,
   attended: false,
   paid: false,
-  notes: ''
+  notes: '',
+  isGroup: false,
+  groupPrice: 250,
+  groupParticipantIds: [] as string[]
 })
 
 const payments = ref<Array<{
@@ -763,6 +1181,32 @@ const sessionSummary = ref({
 })
 
 const newPayment = ref({
+  amount: 0,
+  method: 'cash' as 'cash' | 'transfer' | 'credit' | 'check',
+  notes: ''
+})
+
+const groupForm = ref({
+  date: '',
+  time: '',
+  groupPrice: 250
+})
+
+const groupParticipants = ref<Array<{
+  clientId: string
+  clientName: string
+  attended: boolean
+  payments: Array<{
+    id: string
+    amount: number
+    method: 'cash' | 'transfer' | 'credit' | 'check'
+    date: Date
+    notes: string
+  }>
+  isRegular: boolean
+}>>([])
+
+const participantPaymentForm = ref({
   amount: 0,
   method: 'cash' as 'cash' | 'transfer' | 'credit' | 'check',
   notes: ''
@@ -887,6 +1331,28 @@ const remainingDebt = computed(() => {
 
 const isPaidInFull = computed(() => {
   return totalPaid.value >= appointmentForm.value.price
+})
+
+// Group session computed properties
+const availableClientsForGroup = computed(() => {
+  const participantIds = groupParticipants.value.map(p => p.clientId)
+  return clientOptions.value.filter(c => !participantIds.includes(c.id))
+})
+
+const attendedCount = computed(() => {
+  return groupParticipants.value.filter(p => p.attended).length
+})
+
+const totalGroupPaid = computed(() => {
+  return groupParticipants.value.reduce((sum, p) => {
+    const participantTotal = p.payments.reduce((pSum, payment) => pSum + payment.amount, 0)
+    return sum + participantTotal
+  }, 0)
+})
+
+const selectedParticipant = computed(() => {
+  if (selectedParticipantIndex.value === null) return null
+  return groupParticipants.value[selectedParticipantIndex.value]
 })
 
 const daysOfWeek = computed(() => {
@@ -1221,7 +1687,17 @@ const loadAppointments = async () => {
         notes: data.notes || '',
         // Keep old fields for backward compatibility
         paymentAmount: data.paymentAmount,
-        paymentMethod: data.paymentMethod
+        paymentMethod: data.paymentMethod,
+        // Session summary fields
+        startTime: data.startTime,
+        endTime: data.endTime,
+        duration: data.duration,
+        durationCategory: data.durationCategory,
+        sessionSummaryNotes: data.sessionSummaryNotes,
+        // Group session fields
+        isGroup: data.isGroup || false,
+        groupPrice: data.groupPrice,
+        groupParticipants: data.groupParticipants || []
       } as Appointment
     })
 
@@ -1241,6 +1717,21 @@ const loadTemplate = async () => {
     templateSlots.value = snapshot.docs.map(doc => {
       const data = doc.data()
 
+      // Check if it's a group session
+      if (data.isGroup) {
+        return {
+          id: doc.id,
+          dayOfWeek: data.dayOfWeek,
+          time: data.time,
+          isGroup: true,
+          groupPrice: data.groupPrice || 250,
+          groupParticipantIds: data.groupParticipantIds || [],
+          groupParticipantNames: data.groupParticipantNames || [],
+          defaultClientIds: [],
+          defaultClientNames: []
+        } as ScheduleSlot
+      }
+
       // Support both old (single client) and new (multiple clients) format
       if (data.defaultClientIds && Array.isArray(data.defaultClientIds)) {
         // New format
@@ -1248,8 +1739,11 @@ const loadTemplate = async () => {
           id: doc.id,
           dayOfWeek: data.dayOfWeek,
           time: data.time,
+          isGroup: false,
           defaultClientIds: data.defaultClientIds,
-          defaultClientNames: data.defaultClientNames || []
+          defaultClientNames: data.defaultClientNames || [],
+          groupParticipantIds: [],
+          groupParticipantNames: []
         } as ScheduleSlot
       } else {
         // Old format - convert to new
@@ -1257,14 +1751,15 @@ const loadTemplate = async () => {
           id: doc.id,
           dayOfWeek: data.dayOfWeek,
           time: data.time,
+          isGroup: false,
           defaultClientIds: data.defaultClientId ? [data.defaultClientId] : [],
-          defaultClientNames: data.defaultClientName ? [data.defaultClientName] : []
+          defaultClientNames: data.defaultClientName ? [data.defaultClientName] : [],
+          groupParticipantIds: [],
+          groupParticipantNames: []
         } as ScheduleSlot
       }
     })
 
-    // Sort template slots after loading
-    sortTemplateSlots()
   } catch (error) {
     console.error('Error loading template:', error)
   }
@@ -1277,27 +1772,31 @@ const getAppointment = (date: Date, time: string): Appointment | undefined => {
   })
 }
 
-// חישוב מספר פגישה דינמי לפי כמה פגישות הלקוח הגיע עד תאריך זה
+// חישוב מספר פגישה דינמי לפי כל הפגישות שנקבעו עד תאריך זה
 const getDisplaySessionNumber = (appointment: Appointment | undefined): number => {
-  if (!appointment) return 1
+  if (!appointment || !appointment.clientId) return 1
 
-  // Count how many appointments this client attended BEFORE this date
-  const attendedBefore = appointments.value.filter(apt => {
+  // Count ALL appointments for this client BEFORE OR AT this date/time
+  const appointmentsBefore = appointments.value.filter(apt => {
+    // Skip if not the same client
     if (apt.clientId !== appointment.clientId) return false
-    if (!apt.attended) return false
+
+    // Skip if it's the exact same appointment
+    if (apt.id === appointment.id) return false
 
     const aptDate = apt.date instanceof Date ? apt.date : new Date(apt.date)
     const currentDate = appointment.date instanceof Date ? appointment.date : new Date(appointment.date)
 
-    // Include appointments before this one, or same date but earlier time
+    // Include appointments before this date
     if (aptDate < currentDate) return true
+
+    // For same date, include only earlier times
     if (isSameDay(aptDate, currentDate) && apt.time < appointment.time) return true
-    if (isSameDay(aptDate, currentDate) && apt.time === appointment.time && apt.id === appointment.id) return true
 
     return false
   }).length
 
-  return attendedBefore > 0 ? attendedBefore : 1
+  return appointmentsBefore + 1
 }
 
 const getTemplateSlotsForDay = (dayIndex: number): ScheduleSlot[] => {
@@ -1310,12 +1809,13 @@ const addTemplateSlot = (dayIndex: number) => {
     dayOfWeek: dayIndex,
     time: '09:00',
     defaultClientIds: [],
-    defaultClientNames: []
+    defaultClientNames: [],
+    isGroup: false,
+    groupPrice: 250,
+    groupParticipantIds: [],
+    groupParticipantNames: []
   }
   templateSlots.value.push(newSlot)
-
-  // Sort template slots by day and time after adding
-  sortTemplateSlots()
 }
 
 const sortTemplateSlots = () => {
@@ -1360,18 +1860,39 @@ const saveTemplate = async () => {
     // Save new template (only slots that are valid)
     for (const slot of templateSlots.value) {
       if (slot.time) {
-        // Update client names based on selected IDs
-        const clientNames = (slot.defaultClientIds || []).map(clientId => {
-          const client = clients.value.find(c => c.id === clientId)
-          return client ? client.name : ''
-        }).filter(name => name !== '')
+        if (slot.isGroup) {
+          // Group session - save participant names
+          const participantNames = (slot.groupParticipantIds || []).map(clientId => {
+            const client = clients.value.find(c => c.id === clientId)
+            return client ? client.name : ''
+          }).filter(name => name !== '')
 
-        await addDoc(collection(db, 'schedule_template'), {
-          dayOfWeek: slot.dayOfWeek,
-          time: slot.time,
-          defaultClientIds: slot.defaultClientIds || [],
-          defaultClientNames: clientNames
-        })
+          await addDoc(collection(db, 'schedule_template'), {
+            dayOfWeek: slot.dayOfWeek,
+            time: slot.time,
+            isGroup: true,
+            groupPrice: slot.groupPrice || 250,
+            groupParticipantIds: slot.groupParticipantIds || [],
+            groupParticipantNames: participantNames,
+            // Keep empty for backward compatibility
+            defaultClientIds: [],
+            defaultClientNames: []
+          })
+        } else {
+          // Regular appointment - save client names
+          const clientNames = (slot.defaultClientIds || []).map(clientId => {
+            const client = clients.value.find(c => c.id === clientId)
+            return client ? client.name : ''
+          }).filter(name => name !== '')
+
+          await addDoc(collection(db, 'schedule_template'), {
+            dayOfWeek: slot.dayOfWeek,
+            time: slot.time,
+            isGroup: false,
+            defaultClientIds: slot.defaultClientIds || [],
+            defaultClientNames: clientNames
+          })
+        }
       }
     }
 
@@ -1427,6 +1948,176 @@ const shouldAddClientThisWeek = async (clientId: string, frequency: string) => {
   return true
 }
 
+// כלי מנהל: מצא ומחק פגישות כפולות
+const findAndRemoveDuplicates = async () => {
+  try {
+    const appointmentsQuery = query(collection(db, 'appointments'))
+    const snapshot = await getDocs(appointmentsQuery)
+
+    const allAppointments: any[] = []
+    snapshot.forEach(doc => {
+      allAppointments.push({
+        id: doc.id,
+        ...doc.data()
+      })
+    })
+
+    console.log(`📊 Total appointments in DB: ${allAppointments.length}`)
+
+    // Map: "clientId-date-time" -> array of appointment IDs
+    const duplicateMap = new Map<string, any[]>()
+
+    allAppointments.forEach(apt => {
+      // Skip group appointments from duplicate check
+      if (apt.isGroup) return
+
+      const dateStr = apt.date instanceof Date
+        ? apt.date.toISOString().split('T')[0]
+        : new Date(apt.date.seconds * 1000).toISOString().split('T')[0]
+
+      const key = `${apt.clientId}-${dateStr}-${apt.time}`
+
+      if (!duplicateMap.has(key)) {
+        duplicateMap.set(key, [])
+      }
+      duplicateMap.get(key)!.push(apt)
+    })
+
+    // Find duplicates (keys with more than 1 appointment)
+    const duplicates: any[] = []
+    duplicateMap.forEach((apts, key) => {
+      if (apts.length > 1) {
+        duplicates.push({ key, appointments: apts })
+      }
+    })
+
+    if (duplicates.length === 0) {
+      showSnackbar('✅ לא נמצאו פגישות כפולות!', 'success')
+      console.log('✅ No duplicates found')
+      return
+    }
+
+    console.log(`⚠️ Found ${duplicates.length} sets of duplicates:`)
+
+    let deletedCount = 0
+
+    // For each set of duplicates, keep the first one and delete the rest
+    for (const dup of duplicates) {
+      console.log(`Duplicate set for ${dup.key}:`, dup.appointments.map((a: any) => a.id))
+
+      // Sort by creation time if available, otherwise keep first
+      const sorted = dup.appointments.sort((a: any, b: any) => {
+        if (a.createdAt && b.createdAt) {
+          const aTime = a.createdAt.seconds || 0
+          const bTime = b.createdAt.seconds || 0
+          return aTime - bTime
+        }
+        return 0
+      })
+
+      // Keep first, delete rest
+      for (let i = 1; i < sorted.length; i++) {
+        await deleteDoc(doc(db, 'appointments', sorted[i].id))
+        deletedCount++
+        console.log(`  🗑️ Deleted duplicate: ${sorted[i].id}`)
+      }
+    }
+
+    showSnackbar(`✅ נמחקו ${deletedCount} פגישות כפולות!`, 'success')
+    console.log(`✅ Deleted ${deletedCount} duplicate appointments`)
+
+    // Reload data
+    await loadData()
+  } catch (error) {
+    console.error('❌ Error removing duplicates:', error)
+    showSnackbar('שגיאה במחיקת כפילויות', 'error')
+  }
+}
+
+// כלי מנהל: מחק פגישות עתידיות (מ-28/12/2024 והלאה)
+const deleteFutureAppointments = async () => {
+  const confirmed = confirm('⚠️ האם את בטוחה שאת רוצה למחוק את כל הפגישות מ-28/12/2024 והלאה?\n\nזה ימחק את כל הפגישות העתידיות, אבל לא יגע בפגישות של השבוע הנוכחי.')
+
+  if (!confirmed) return
+
+  try {
+    // Set cutoff date to 28/12/2024 at 00:00:00
+    const cutoffDate = new Date(2024, 11, 28) // Month is 0-indexed (11 = December)
+    cutoffDate.setHours(0, 0, 0, 0)
+
+    console.log(`🗑️ Deleting appointments from ${cutoffDate.toLocaleDateString('he-IL')} onwards...`)
+    console.log('Cutoff timestamp:', cutoffDate.getTime())
+
+    // Get all appointments
+    const appointmentsQuery = query(collection(db, 'appointments'))
+    const snapshot = await getDocs(appointmentsQuery)
+
+    let deletedCount = 0
+    const toDelete: Array<{ id: string; name: string; date: string; time: string }> = []
+
+    snapshot.forEach(docSnap => {
+      try {
+        const apt = docSnap.data()
+
+        // Convert Firebase timestamp to Date
+        let aptDate: Date
+        if (apt.date instanceof Date) {
+          aptDate = apt.date
+        } else if (apt.date?.seconds) {
+          aptDate = new Date(apt.date.seconds * 1000)
+        } else if (typeof apt.date === 'string') {
+          aptDate = new Date(apt.date)
+        } else {
+          console.warn('Unknown date format:', apt.date)
+          return
+        }
+
+        aptDate.setHours(0, 0, 0, 0) // Normalize to midnight for comparison
+
+        console.log(`Checking: ${apt.clientName || 'קבוצה'} - ${aptDate.toLocaleDateString('he-IL')} (${aptDate.getTime()})`)
+
+        // Delete if date is >= cutoff date
+        if (aptDate >= cutoffDate) {
+          toDelete.push({
+            id: docSnap.id,
+            name: apt.clientName || 'קבוצה טיפולית',
+            date: aptDate.toLocaleDateString('he-IL'),
+            time: apt.time || ''
+          })
+        }
+      } catch (err) {
+        console.error('Error processing appointment:', docSnap.id, err)
+      }
+    })
+
+    console.log(`⚠️ Found ${toDelete.length} appointments to delete:`)
+    toDelete.forEach(apt => {
+      console.log(`  📌 ${apt.name} - ${apt.date} ${apt.time}`)
+    })
+
+    if (toDelete.length === 0) {
+      showSnackbar('לא נמצאו פגישות עתידיות למחיקה', 'info')
+      return
+    }
+
+    // Delete appointments
+    for (const apt of toDelete) {
+      await deleteDoc(doc(db, 'appointments', apt.id))
+      deletedCount++
+      console.log(`  🗑️ Deleted: ${apt.name} - ${apt.date} ${apt.time}`)
+    }
+
+    showSnackbar(`✅ נמחקו ${deletedCount} פגישות עתידיות!`, 'success')
+    console.log(`✅ Deleted ${deletedCount} future appointments`)
+
+    // Reload data
+    await loadData()
+  } catch (error) {
+    console.error('❌ Error deleting future appointments:', error)
+    showSnackbar(`שגיאה במחיקת פגישות עתידיות: ${error}`, 'error')
+  }
+}
+
 const fillWeekFromTemplate = async () => {
   if (!hasTemplate.value) {
     showSnackbar('אין תבנית שבועית מוגדרת', 'warning')
@@ -1443,83 +2134,142 @@ const fillWeekFromTemplate = async () => {
       const daySlots = templateSlots.value.filter(s => s.dayOfWeek === day.index)
 
       for (const slot of daySlots) {
-        // Support old format (single client) and new format (multiple clients)
-        const clientIds = slot.defaultClientIds && slot.defaultClientIds.length > 0
-          ? slot.defaultClientIds
-          : ((slot as any).defaultClientId ? [(slot as any).defaultClientId] : [])
-
-        // Loop through all clients for this slot
-        for (const clientId of clientIds) {
-          const client = clients.value.find(c => c.id === clientId)
-          if (!client) continue
-
-          // Check if THIS CLIENT already has an appointment at this time (check in Firebase directly)
+        // Check if this is a group session
+        if (slot.isGroup) {
+          // Check if a group appointment already exists at this time
           const dayStart = new Date(day.date)
           dayStart.setHours(0, 0, 0, 0)
           const dayEnd = new Date(day.date)
           dayEnd.setHours(23, 59, 59, 999)
 
-          const existingAppointmentQuery = query(
+          const existingGroupQuery = query(
             collection(db, 'appointments'),
-            where('clientId', '==', client.id),
             where('date', '>=', dayStart),
             where('date', '<=', dayEnd),
-            where('time', '==', slot.time)
+            where('time', '==', slot.time),
+            where('isGroup', '==', true)
           )
-          const existingAppointmentSnapshot = await getDocs(existingAppointmentQuery)
+          const existingGroupSnapshot = await getDocs(existingGroupQuery)
 
-          if (!existingAppointmentSnapshot.empty) {
-            console.log(`⏭️ Skip ${client.name} - already has appointment at ${slot.time}`)
+          if (!existingGroupSnapshot.empty) {
+            console.log(`⏭️ Skip group session - already exists at ${slot.time}`)
             continue
           }
 
-          // Check if client should be added this week based on frequency
-          const shouldAdd = await shouldAddClientThisWeek(client.id, client.frequency || 'weekly')
-
-          if (!shouldAdd) {
-            console.log(`⏭️ Skip ${client.name} - not due this week (${client.frequency})`)
-            continue
-          }
-
-          // Calculate session number for this client (count only attended appointments)
-          if (!clientSessionCounts[client.id]) {
-            // First time seeing this client - count existing ATTENDED appointments
-            const clientAppointmentsQuery = query(
-              collection(db, 'appointments'),
-              where('clientId', '==', client.id)
-            )
-            const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
-            // Count only appointments where the client attended
-            const attendedCount = clientAppointmentsSnapshot.docs.filter(
-              doc => doc.data().attended === true
-            ).length
-            clientSessionCounts[client.id] = attendedCount
-          }
-
-          // Don't increment here - session number will be assigned when they attend
-          // For now, assign the next potential session number
-          const sessionNumber = clientSessionCounts[client.id] + 1
-
-          // Create date at midnight
+          // Create group appointment with regular participants
           const appointmentDate = new Date(day.date)
           appointmentDate.setHours(0, 0, 0, 0)
 
-          const appointmentData = {
-            clientId: client.id,
-            clientName: client.name,
+          const groupParticipants: any[] = (slot.groupParticipantIds || []).map(participantId => {
+            const client = clients.value.find(c => c.id === participantId)
+            return client ? {
+              clientId: client.id,
+              clientName: client.name,
+              attended: false,
+              payments: [],
+              isRegular: true
+            } : null
+          }).filter(p => p !== null)
+
+          const groupAppointmentData = {
+            clientId: 'group', // Special marker for group sessions
+            clientName: 'קבוצה טיפולית',
             date: appointmentDate,
             time: slot.time,
-            price: client.pricePerSession,
+            price: (slot.groupPrice || 250) * groupParticipants.length, // Total expected income
             attended: false,
             paid: false,
             payments: [],
-            sessionNumber: sessionNumber,
-            notes: ''
+            sessionNumber: 1,
+            notes: '',
+            isGroup: true,
+            groupPrice: slot.groupPrice || 250,
+            groupParticipants: groupParticipants
           }
 
-          await addDoc(collection(db, 'appointments'), appointmentData)
+          await addDoc(collection(db, 'appointments'), groupAppointmentData)
           addedCount++
-          break // Only add ONE client per slot per week
+          console.log(`✅ Added group session at ${slot.time} with ${groupParticipants.length} participants`)
+        } else {
+          // Regular appointment logic (existing code)
+          // Support old format (single client) and new format (multiple clients)
+          const clientIds = slot.defaultClientIds && slot.defaultClientIds.length > 0
+            ? slot.defaultClientIds
+            : ((slot as any).defaultClientId ? [(slot as any).defaultClientId] : [])
+
+          // Loop through all clients for this slot
+          for (const clientId of clientIds) {
+            const client = clients.value.find(c => c.id === clientId)
+            if (!client) continue
+
+            // Check if THIS CLIENT already has an appointment at this time (check in Firebase directly)
+            const dayStart = new Date(day.date)
+            dayStart.setHours(0, 0, 0, 0)
+            const dayEnd = new Date(day.date)
+            dayEnd.setHours(23, 59, 59, 999)
+
+            const existingAppointmentQuery = query(
+              collection(db, 'appointments'),
+              where('clientId', '==', client.id),
+              where('date', '>=', dayStart),
+              where('date', '<=', dayEnd),
+              where('time', '==', slot.time)
+            )
+            const existingAppointmentSnapshot = await getDocs(existingAppointmentQuery)
+
+            if (!existingAppointmentSnapshot.empty) {
+              console.log(`⏭️ Skip ${client.name} - already has appointment at ${slot.time}`)
+              continue
+            }
+
+            // Check if client should be added this week based on frequency
+            const shouldAdd = await shouldAddClientThisWeek(client.id, client.frequency || 'weekly')
+
+            if (!shouldAdd) {
+              console.log(`⏭️ Skip ${client.name} - not due this week (${client.frequency})`)
+              continue
+            }
+
+            // Calculate session number for this client (count only attended appointments)
+            if (!clientSessionCounts[client.id]) {
+              // First time seeing this client - count existing ATTENDED appointments
+              const clientAppointmentsQuery = query(
+                collection(db, 'appointments'),
+                where('clientId', '==', client.id)
+              )
+              const clientAppointmentsSnapshot = await getDocs(clientAppointmentsQuery)
+              // Count only appointments where the client attended
+              const attendedCount = clientAppointmentsSnapshot.docs.filter(
+                doc => doc.data().attended === true
+              ).length
+              clientSessionCounts[client.id] = attendedCount
+            }
+
+            // Don't increment here - session number will be assigned when they attend
+            // For now, assign the next potential session number
+            const sessionNumber = clientSessionCounts[client.id] + 1
+
+            // Create date at midnight
+            const appointmentDate = new Date(day.date)
+            appointmentDate.setHours(0, 0, 0, 0)
+
+            const appointmentData = {
+              clientId: client.id,
+              clientName: client.name,
+              date: appointmentDate,
+              time: slot.time,
+              price: client.pricePerSession,
+              attended: false,
+              paid: false,
+              payments: [],
+              sessionNumber: sessionNumber,
+              notes: ''
+            }
+
+            await addDoc(collection(db, 'appointments'), appointmentData)
+            addedCount++
+            break // Only add ONE client per slot per week
+          }
         }
       }
     }
@@ -1603,6 +2353,12 @@ const updateWeeklyTargetFromAppointments = async () => {
 const openAppointmentDialog = (date: Date, time: string) => {
   const existing = getAppointment(date, time)
 
+  // Check if this is a group session
+  if (existing?.isGroup) {
+    openGroupDialog(existing)
+    return
+  }
+
   if (existing) {
     selectedAppointment.value = existing
     const aptDate = existing.date instanceof Date ? existing.date : new Date(existing.date)
@@ -1613,7 +2369,10 @@ const openAppointmentDialog = (date: Date, time: string) => {
       price: existing.price,
       attended: existing.attended,
       paid: existing.paid,
-      notes: existing.notes || ''
+      notes: existing.notes || '',
+      isGroup: false,
+      groupPrice: 250,
+      groupParticipantIds: []
     }
 
     // Load payments (support old format with single payment)
@@ -1662,9 +2421,19 @@ const openAppointmentDialog = (date: Date, time: string) => {
       price: 400,
       attended: false,
       paid: false,
-      notes: ''
+      notes: '',
+      isGroup: false,
+      groupPrice: 250,
+      groupParticipantIds: []
     }
     payments.value = []
+    sessionSummary.value = {
+      startTime: '',
+      endTime: '',
+      duration: null,
+      category: null,
+      notes: ''
+    }
   }
 
   showAppointmentDetailsDialog.value = true
@@ -1688,6 +2457,201 @@ const closeAppointmentDialog = () => {
     notes: ''
   }
   appointmentFormRef.value?.reset()
+}
+
+// Group session functions
+const openGroupDialog = (appointment: Appointment) => {
+  selectedAppointment.value = appointment
+  const aptDate = appointment.date instanceof Date ? appointment.date : new Date(appointment.date)
+
+  groupForm.value = {
+    date: formatDate(aptDate),
+    time: appointment.time,
+    groupPrice: appointment.groupPrice || 250
+  }
+
+  groupParticipants.value = (appointment.groupParticipants || []).map(p => ({
+    clientId: p.clientId,
+    clientName: p.clientName,
+    attended: p.attended,
+    payments: p.payments.map(payment => ({
+      id: payment.id,
+      amount: payment.amount,
+      method: payment.method,
+      date: payment.date instanceof Date ? payment.date : new Date(payment.date),
+      notes: payment.notes || ''
+    })),
+    isRegular: p.isRegular
+  }))
+
+  showGroupDialog.value = true
+}
+
+const closeGroupDialog = () => {
+  showGroupDialog.value = false
+  selectedAppointment.value = null
+  groupParticipants.value = []
+  oneTimeParticipant.value = ''
+}
+
+const addOneTimeParticipant = () => {
+  if (!oneTimeParticipant.value) return
+
+  const client = clients.value.find(c => c.id === oneTimeParticipant.value)
+  if (!client) return
+
+  groupParticipants.value.push({
+    clientId: client.id,
+    clientName: client.name,
+    attended: false,
+    payments: [],
+    isRegular: false
+  })
+
+  oneTimeParticipant.value = ''
+}
+
+const removeParticipant = (index: number) => {
+  groupParticipants.value.splice(index, 1)
+}
+
+const toggleParticipantAttendance = (index: number) => {
+  groupParticipants.value[index].attended = !groupParticipants.value[index].attended
+
+  // Clear payments if marking as not attended
+  if (!groupParticipants.value[index].attended) {
+    groupParticipants.value[index].payments = []
+  }
+}
+
+const getParticipantPaymentColor = (participant: any): string => {
+  const totalPaid = participant.payments.reduce((sum: number, p: any) => sum + p.amount, 0)
+  const expected = groupForm.value.groupPrice
+
+  if (totalPaid >= expected) return 'success'
+  if (totalPaid > 0) return 'warning'
+  return 'error'
+}
+
+const getParticipantPaymentText = (participant: any): string => {
+  const totalPaid = participant.payments.reduce((sum: number, p: any) => sum + p.amount, 0)
+  const expected = groupForm.value.groupPrice
+  const debt = expected - totalPaid
+
+  if (totalPaid >= expected) return 'שולם במלואו'
+  if (totalPaid > 0) return `חוב: ₪${debt}`
+  return `לא שולם (₪${expected})`
+}
+
+const openParticipantPayment = (index: number) => {
+  selectedParticipantIndex.value = index
+  const participant = groupParticipants.value[index]
+  const totalPaid = participant.payments.reduce((sum, p) => sum + p.amount, 0)
+  const remaining = groupForm.value.groupPrice - totalPaid
+
+  participantPaymentForm.value = {
+    amount: remaining > 0 ? remaining : groupForm.value.groupPrice,
+    method: 'cash',
+    notes: ''
+  }
+
+  showParticipantPaymentDialog.value = true
+}
+
+const closeParticipantPaymentDialog = () => {
+  showParticipantPaymentDialog.value = false
+  selectedParticipantIndex.value = null
+  participantPaymentForm.value = {
+    amount: 0,
+    method: 'cash',
+    notes: ''
+  }
+}
+
+const addParticipantPayment = () => {
+  if (selectedParticipantIndex.value === null) return
+
+  const payment = {
+    id: `payment_${Date.now()}`,
+    amount: participantPaymentForm.value.amount,
+    method: participantPaymentForm.value.method,
+    date: new Date(),
+    notes: participantPaymentForm.value.notes
+  }
+
+  groupParticipants.value[selectedParticipantIndex.value].payments.push(payment)
+  closeParticipantPaymentDialog()
+}
+
+const saveGroupSession = async () => {
+  if (!selectedAppointment.value) return
+
+  savingAppointment.value = true
+  try {
+    const appointmentRef = doc(db, 'appointments', selectedAppointment.value.id)
+
+    // Calculate total expected income (only from attended participants)
+    const attendedParticipants = groupParticipants.value.filter(p => p.attended)
+    const totalExpectedIncome = attendedParticipants.length * groupForm.value.groupPrice
+
+    // Update appointment
+    await updateDoc(appointmentRef, {
+      groupParticipants: groupParticipants.value.map(p => ({
+        clientId: p.clientId,
+        clientName: p.clientName,
+        attended: p.attended,
+        payments: p.payments,
+        isRegular: p.isRegular
+      })),
+      price: totalExpectedIncome,
+      attended: attendedParticipants.length > 0
+    })
+
+    // Update client balances
+    for (const participant of groupParticipants.value) {
+      if (participant.attended) {
+        const client = clients.value.find(c => c.id === participant.clientId)
+        if (!client) continue
+
+        const totalPaid = participant.payments.reduce((sum, p) => sum + p.amount, 0)
+        const debt = groupForm.value.groupPrice - totalPaid
+
+        if (debt !== 0) {
+          const clientRef = doc(db, 'clients', participant.clientId)
+          await updateDoc(clientRef, {
+            balance: (client.balance || 0) - debt
+          })
+        }
+      }
+    }
+
+    showSnackbar('הקבוצה עודכנה בהצלחה', 'success')
+    closeGroupDialog()
+    await loadAppointments()
+    await loadClients()
+    await updateWeeklyTargetFromAppointments()
+  } catch (error) {
+    console.error('Error saving group session:', error)
+    showSnackbar('שגיאה בשמירת הקבוצה', 'error')
+  } finally {
+    savingAppointment.value = false
+  }
+}
+
+const confirmDeleteGroupSession = async () => {
+  if (!selectedAppointment.value) return
+  if (!confirm('האם אתה בטוח שברצונך למחוק את הקבוצה?')) return
+
+  try {
+    await deleteDoc(doc(db, 'appointments', selectedAppointment.value.id))
+    showSnackbar('הקבוצה נמחקה בהצלחה', 'success')
+    closeGroupDialog()
+    await loadAppointments()
+    await updateWeeklyTargetFromAppointments()
+  } catch (error) {
+    console.error('Error deleting group session:', error)
+    showSnackbar('שגיאה במחיקת הקבוצה', 'error')
+  }
 }
 
 const cancelAddPayment = () => {
@@ -1761,11 +2725,28 @@ const removePayment = (paymentId: string) => {
 }
 
 const saveAppointment = async () => {
+  // If this is a group appointment, validate differently
+  if (appointmentForm.value.isGroup) {
+    if (!appointmentForm.value.date || !appointmentForm.value.time) {
+      showSnackbar('יש למלא תאריך ושעה', 'warning')
+      return
+    }
+    if (!appointmentForm.value.groupParticipantIds || appointmentForm.value.groupParticipantIds.length === 0) {
+      showSnackbar('יש לבחור לפחות משתתף אחד', 'warning')
+      return
+    }
+    savingAppointment.value = true
+    await saveGroupAppointmentManual()
+    return
+  }
+
+  // Regular appointment validation
   const { valid } = await appointmentFormRef.value.validate()
   if (!valid) return
 
   savingAppointment.value = true
   try {
+
     const client = clients.value.find(c => c.id === appointmentForm.value.clientId)
     if (!client) return
 
@@ -1961,6 +2942,58 @@ const recalculateClientBalance = async (clientId: string) => {
   }
 }
 
+// שמירת קבוצה טיפולית ידנית (לא מתבנית)
+const saveGroupAppointmentManual = async () => {
+  try {
+    // יצירת תאריך מקומי נכון
+    const appointmentDate = createLocalDate(appointmentForm.value.date)
+
+    // בניית רשימת משתתפים
+    const groupParticipants: any[] = appointmentForm.value.groupParticipantIds.map(participantId => {
+      const client = clients.value.find(c => c.id === participantId)
+      return client ? {
+        clientId: client.id,
+        clientName: client.name,
+        attended: false,
+        payments: [],
+        isRegular: true
+      } : null
+    }).filter(p => p !== null)
+
+    if (groupParticipants.length === 0) {
+      showSnackbar('יש לבחור לפחות משתתף אחד', 'warning')
+      return
+    }
+
+    const groupAppointmentData = {
+      clientId: 'group',
+      clientName: 'קבוצה טיפולית',
+      date: appointmentDate,
+      time: appointmentForm.value.time,
+      price: appointmentForm.value.groupPrice * groupParticipants.length,
+      attended: false,
+      paid: false,
+      payments: [],
+      sessionNumber: 1,
+      notes: appointmentForm.value.notes || '',
+      isGroup: true,
+      groupPrice: appointmentForm.value.groupPrice,
+      groupParticipants: groupParticipants
+    }
+
+    await addDoc(collection(db, 'appointments'), groupAppointmentData)
+    showSnackbar('✅ קבוצה טיפולית נוספה בהצלחה!', 'success')
+
+    closeAppointmentDialog()
+    await loadData()
+  } catch (error) {
+    console.error('❌ Error saving group appointment:', error)
+    showSnackbar('שגיאה בשמירת הקבוצה', 'error')
+  } finally {
+    savingAppointment.value = false
+  }
+}
+
 const confirmDeleteAppointment = async () => {
   if (!selectedAppointment.value) return
 
@@ -2146,6 +3179,16 @@ onMounted(() => {
 .appointment-card.attended.paid {
   border-color: #4CAF50;
   background: linear-gradient(135deg, rgba(76, 175, 80, 0.12), rgba(25, 118, 210, 0.12));
+}
+
+.appointment-card.group-session {
+  border-color: #9C27B0;
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.08), rgba(156, 39, 176, 0.12));
+}
+
+.appointment-card.group-session:hover {
+  border-color: #7B1FA2;
+  box-shadow: 0 6px 16px rgba(156, 39, 176, 0.3);
 }
 
 .appointment-name {

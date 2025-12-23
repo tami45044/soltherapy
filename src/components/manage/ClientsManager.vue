@@ -7,17 +7,30 @@
           <h2 class="text-h4 mb-2" style="color: #1e3a5f;">ניהול לקוחות</h2>
           <p class="text-subtitle-1 text-medium-emphasis">סה"כ {{ clients.length }} לקוחות במערכת</p>
         </div>
-        <v-btn
-          color="primary"
-          size="large"
-          rounded="xl"
-          elevation="4"
-          @click="openAddDialog"
-          class="flex-shrink-0"
-        >
-          <v-icon icon="mdi-plus" size="20" />
-          לקוח חדש
-        </v-btn>
+        <div class="d-flex gap-2">
+          <v-btn
+            color="warning"
+            size="large"
+            rounded="xl"
+            elevation="4"
+            @click="resetAllBalances"
+            class="flex-shrink-0"
+          >
+            <v-icon icon="mdi-refresh" size="20" />
+            אפס חובות
+          </v-btn>
+          <v-btn
+            color="primary"
+            size="large"
+            rounded="xl"
+            elevation="4"
+            @click="openAddDialog"
+            class="flex-shrink-0"
+          >
+            <v-icon icon="mdi-plus" size="20" />
+            לקוח חדש
+          </v-btn>
+        </div>
       </v-col>
     </v-row>
 
@@ -668,6 +681,30 @@ const openEditDialog = (client: Client) => {
 const closeDialog = () => {
   showDialog.value = false
   formRef.value?.reset()
+}
+
+const resetAllBalances = async () => {
+  const confirmed = confirm('⚠️ האם את בטוחה שאת רוצה לאפס את כל החובות והסשנים של כל הלקוחות?\n\nזה יאפס:\n• balance → 0\n• totalSessions → 0\n\nזה בלתי הפיך!')
+
+  if (!confirmed) return
+
+  try {
+    console.log('🔄 מאפס חובות לכל הלקוחות...')
+
+    for (const client of clients.value) {
+      await updateDoc(doc(db, 'clients', client.id), {
+        balance: 0,
+        totalSessions: 0
+      })
+      console.log(`✅ אופס: ${client.name}`)
+    }
+
+    showSnackbar('✅ כל החובות והסשנים אופסו בהצלחה!', 'success')
+    await loadClients()
+  } catch (error) {
+    console.error('❌ שגיאה באיפוס חובות:', error)
+    showSnackbar('שגיאה באיפוס חובות', 'error')
+  }
 }
 
 const saveClient = async () => {

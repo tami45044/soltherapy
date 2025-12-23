@@ -63,6 +63,9 @@
                 <div class="text-caption text-medium-emphasis">
                   מתוך ₪{{ stats.weekExpected.toLocaleString() }}
                 </div>
+                <div class="text-caption text-success font-weight-medium mt-1">
+                  שולם: ₪{{ stats.weekPaid.toLocaleString() }}
+                </div>
               </div>
               <v-avatar size="56" color="info" variant="tonal">
                 <v-icon icon="mdi-calendar-week" size="28" />
@@ -90,6 +93,9 @@
                 </div>
                 <div class="text-caption text-medium-emphasis">
                   מתוך ₪{{ stats.monthExpected.toLocaleString() }}
+                </div>
+                <div class="text-caption text-success font-weight-medium mt-1">
+                  שולם: ₪{{ stats.monthPaid.toLocaleString() }}
                 </div>
               </div>
               <v-avatar size="56" color="deep-purple" variant="tonal">
@@ -268,9 +274,12 @@
               <v-col cols="12" md="4">
                 <div class="stat-box-modern">
                   <v-icon icon="mdi-cash-check" size="40" color="success" class="mb-3" />
-                  <div class="stat-label-modern">הכנסות בפועל</div>
+                  <div class="stat-label-modern">הכנסות החודש</div>
                   <div class="stat-value-modern" style="color: #4CAF50;">₪{{ stats.monthActual.toLocaleString() }}</div>
                   <div class="stat-sublabel-modern">מתוך ₪{{ stats.monthExpected.toLocaleString() }} צפוי</div>
+                  <div class="stat-sublabel-modern" style="color: #2E7D32; font-weight: 600; margin-top: 4px;">
+                    שולם בפועל: ₪{{ stats.monthPaid.toLocaleString() }}
+                  </div>
                 </div>
               </v-col>
 
@@ -402,7 +411,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/firebase'
-import type { Client, Appointment } from '@/types/manage'
+import type { Client, Appointment, PaymentRecord } from '@/types/manage'
 
 // Emit
 const emit = defineEmits(['navigate'])
@@ -454,29 +463,35 @@ const stats = computed(() => {
 
   // חישובים שבועיים
   // סכום מצופה = כל הפגישות המתוכננות
-  // סכום בפועל = רק תשלומים שנעשו בפועל
+  // הכנסה בפועל = פגישות שהלקוח הגיע אליהן (לפי מחיר הפגישה)
+  // שולם בפועל = תשלומים שהתקבלו בפועל
   const weekExpected = weekAppts.reduce((sum, a) => sum + a.price, 0)
-  const weekActual = calculateActualPayments(weekAppts)
+  const weekActual = weekAppts.filter(a => a.attended).reduce((sum, a) => sum + a.price, 0)
+  const weekPaid = calculateActualPayments(weekAppts)
   const weekPercentage = weekExpected > 0 ? Math.round((weekActual / weekExpected) * 100) : 0
 
   console.log('📊 Dashboard Weekly Stats:', {
     weekAppts: weekAppts.length,
     weekExpected,
     weekActual,
+    weekPaid,
     weekPercentage
   })
 
   // חישובים חודשיים
   // סכום מצופה = כל הפגישות המתוכננות
-  // סכום בפועל = רק תשלומים שנעשו בפועל
+  // הכנסה בפועל = פגישות שהלקוח הגיע אליהן (לפי מחיר הפגישה)
+  // שולם בפועל = תשלומים שהתקבלו בפועל
   const monthExpected = monthAppts.reduce((sum, a) => sum + a.price, 0)
-  const monthActual = calculateActualPayments(monthAppts)
+  const monthActual = monthAppts.filter(a => a.attended).reduce((sum, a) => sum + a.price, 0)
+  const monthPaid = calculateActualPayments(monthAppts)
   const monthPercentage = monthExpected > 0 ? Math.round((monthActual / monthExpected) * 100) : 0
 
   console.log('📊 Dashboard Monthly Stats:', {
     monthAppts: monthAppts.length,
     monthExpected,
     monthActual,
+    monthPaid,
     monthPercentage
   })
 
@@ -485,15 +500,17 @@ const stats = computed(() => {
     ? Math.round((attendedCount / monthAppts.length) * 100)
     : 0
 
-  return {
+    return {
     todayAppointments: todayAppts.length,
     weekAppointments: weekAppts.length,
     monthAppointments: monthAppts.length,
     weekExpected,
     weekActual,
+    weekPaid,
     weekPercentage,
     monthExpected,
     monthActual,
+    monthPaid,
     monthPercentage,
     totalClients: clients.value.length,
     attendanceRate
@@ -574,7 +591,7 @@ const loadData = async () => {
       const data = doc.data()
 
       // Support both old and new payment format
-      let paymentsArray = []
+      let paymentsArray: PaymentRecord[] = []
       if (data.payments && Array.isArray(data.payments)) {
         paymentsArray = data.payments.map((p: any) => ({
           id: p.id,

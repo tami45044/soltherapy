@@ -39,7 +39,7 @@
                     ? 'כל הכבוד! הגעת ליעד השבועי!'
                     : targetReached
                       ? 'הגעת ליעד! פתיחת המתנה תהיה זמינה במוצאי שבת'
-                      : `שולם ₪${currentPrize.weeklyActual.toLocaleString()} מתוך ₪${currentPrize.weeklyTarget.toLocaleString()}`
+                      : `הכנסה: ₪${currentPrize.weeklyActual.toLocaleString()} (שולם: ₪${weeklyPaidAmount.toLocaleString()}) מתוך ₪${currentPrize.weeklyTarget.toLocaleString()}`
                   }}
                 </p>
 
@@ -91,6 +91,10 @@
                           </div>
 
                           <div v-if="!day.isFuture" class="day-amounts">
+                            <div class="day-revenue">
+                              <span class="amount-label">הכנסה:</span>
+                              <span class="amount-value">₪{{ day.revenueAmount.toLocaleString() }}</span>
+                            </div>
                             <div class="day-paid">
                               <span class="amount-label">שולם:</span>
                               <span class="amount-value">₪{{ day.paidAmount.toLocaleString() }}</span>
@@ -116,7 +120,7 @@
                               variant="flat"
                               class="mt-2"
                             >
-                              חסר ₪{{ (day.targetAmount - day.paidAmount).toLocaleString() }}
+                              חסר ₪{{ (day.targetAmount - day.revenueAmount).toLocaleString() }}
                             </v-chip>
                           </div>
 
@@ -134,19 +138,22 @@
                 <v-card class="mb-6 financial-summary" rounded="lg" elevation="0">
                   <v-card-text>
                     <v-row align="center" justify="center">
-                      <v-col cols="12" md="5" class="text-center">
+                      <v-col cols="12" md="4" class="text-center">
                         <div class="financial-label">יעד שבועי</div>
                         <div class="financial-value target-value">
                           ₪{{ currentPrize.weeklyTarget.toLocaleString() }}
                         </div>
                       </v-col>
-                      <v-col cols="12" md="2" class="text-center">
-                        <v-icon icon="mdi-arrow-left" size="large" color="white" />
-                      </v-col>
-                      <v-col cols="12" md="5" class="text-center">
-                        <div class="financial-label">שולם בפועל</div>
+                      <v-col cols="12" md="4" class="text-center">
+                        <div class="financial-label">הכנסה בפועל</div>
                         <div class="financial-value actual-value" :class="{ 'target-reached': targetReached }">
                           ₪{{ currentPrize.weeklyActual.toLocaleString() }}
+                        </div>
+                      </v-col>
+                      <v-col cols="12" md="4" class="text-center">
+                        <div class="financial-label">שולם מזה</div>
+                        <div class="financial-value" style="color: #4CAF50;">
+                          ₪{{ weeklyPaidAmount.toLocaleString() }}
                         </div>
                       </v-col>
                     </v-row>
@@ -223,7 +230,7 @@
                 <h3 class="text-h3 mb-4 mt-8 celebration-text">🎉 מזל טוב!</h3>
 
                 <p class="text-h6 mb-6 achievement-text">
-                  עמדת ביעד השבועי והכנסת השבוע ₪{{ currentPrize.weeklyActual.toLocaleString() }}!
+                  עמדת ביעד השבועי! הכנסת השבוע ₪{{ currentPrize.weeklyActual.toLocaleString() }} (שולם: ₪{{ weeklyPaidAmount.toLocaleString() }})
                 </p>
 
                 <v-card class="prize-reveal" rounded="xl" elevation="8">
@@ -268,7 +275,7 @@
 
           <v-card-text class="pa-6">
             <p class="text-subtitle-2 mb-4 text-medium-emphasis">
-              היעד השבועי מחושב אוטומטית מהתבנית השבועית. הפרס יהיה זמין לפתיחה במוצאי שבת אם הושג היעד.
+              היעד השבועי נקבע בתחילת השבוע לפי הפגישות ביומן. היעד לא משתנה אוטומטית - זה מאפשר גמישות בזמני הפגישות. הפרס יהיה זמין לפתיחה במוצאי שבת אם הושג היעד.
             </p>
 
             <v-text-field
@@ -288,20 +295,48 @@
             >
               <div class="text-body-2">
                 <strong>יעד שבועי נוכחי:</strong> ₪{{ currentPrize.weeklyTarget.toLocaleString() }}<br>
-                <strong>שולם עד כה:</strong> ₪{{ currentPrize.weeklyActual.toLocaleString() }}
+                <strong>הכנסה בפועל:</strong> ₪{{ currentPrize.weeklyActual.toLocaleString() }}<br>
+                <strong>שולם מזה:</strong> ₪{{ weeklyPaidAmount.toLocaleString() }}
               </div>
             </v-alert>
 
-            <v-btn
-              color="primary"
-              rounded="xl"
-              block
-              :loading="savingSettings"
-              @click="savePrizeSettings"
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-btn
+                  color="primary"
+                  rounded="xl"
+                  block
+                  :loading="savingSettings"
+                  @click="savePrizeSettings"
+                >
+                  <v-icon icon="mdi-content-save" />
+                  שמור תיאור פרס
+                </v-btn>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-btn
+                  color="warning"
+                  rounded="xl"
+                  block
+                  :loading="updatingTarget"
+                  @click="updateWeeklyTargetFromCalendar"
+                >
+                  <v-icon icon="mdi-calculator" />
+                  עדכן יעד מהיומן
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <v-alert
+              type="warning"
+              variant="tonal"
+              class="mt-4"
+              density="compact"
             >
-              <v-icon icon="mdi-content-save" />
-              שמור הגדרות
-            </v-btn>
+              <div class="text-caption">
+                💡 היעד השבועי נקבע בתחילת השבוע ולא משתנה אוטומטית. לחץ על "עדכן יעד מהיומן" רק במקרים חריגים.
+              </div>
+            </v-alert>
           </v-card-text>
         </v-card>
       </v-col>
@@ -336,8 +371,11 @@ const prizeSettings = ref({
 
 const unlocking = ref(false)
 const savingSettings = ref(false)
+const updatingTarget = ref(false)
+const dailyRevenue = ref<Record<string, number>>({}) // הכנסה יומית (attended appointments)
 const dailyPayments = ref<Record<string, number>>({}) // סכום תשלומים לכל יום
-const dailyTargets = ref<Record<string, number>>({}) // יעד (סכום מחירי הפגישות) לכל יום
+const dailyTargets = ref<Record<string, number>>({}) // יעד קבוע לכל יום
+const weeklyPaidAmount = ref(0) // סכום שולם בפועל השבוע
 
 const snackbar = ref({
   show: false,
@@ -394,19 +432,21 @@ const weekDays = computed(() => {
     date.setDate(date.getDate() + i)
     const dateStr = date.toISOString().split('T')[0]
 
-    const paidAmount = dailyPayments.value[dateStr] || 0
-    const targetForDay = dailyTargets.value[dateStr] || 0 // יעד לפי פגישות בפועל
+    const revenueAmount = dailyRevenue.value[dateStr] || 0 // הכנסה (attended)
+    const paidAmount = dailyPayments.value[dateStr] || 0 // שולם בפועל
+    const targetForDay = dailyTargets.value[dateStr] || 0 // יעד קבוע
     const isPast = date < today
     const isToday = date.getTime() === today.getTime()
 
-    const metTarget = paidAmount >= targetForDay && targetForDay > 0
+    const metTarget = revenueAmount >= targetForDay && targetForDay > 0
 
     days.push({
       index: i,
       name: hebrewDays[i],
       date: date,
       dateStr: dateStr,
-      paidAmount: paidAmount,
+      revenueAmount: revenueAmount, // הכנסה
+      paidAmount: paidAmount, // תשלומים
       targetAmount: targetForDay,
       isPast: isPast,
       isToday: isToday,
@@ -459,6 +499,36 @@ function getConfettiStyle(index: number) {
 }
 
 // Methods
+const calculateInitialWeeklyTarget = async (): Promise<number> => {
+  try {
+    const weekStart = getWeekStart(new Date())
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+
+    // Get all appointments this week
+    const appointmentsRef = collection(db, 'appointments')
+    const q = query(
+      appointmentsRef,
+      where('date', '>=', weekStart),
+      where('date', '<', weekEnd)
+    )
+
+    const snapshot = await getDocs(q)
+    let totalTarget = 0
+
+    snapshot.forEach((docSnapshot) => {
+      const appointment = docSnapshot.data()
+      totalTarget += appointment.price || 0
+    })
+
+    console.log('🎯 Initial Weekly Target calculated:', totalTarget)
+    return totalTarget
+  } catch (error) {
+    console.error('Error calculating initial target:', error)
+    return 0
+  }
+}
+
 const loadPrize = async () => {
   try {
     const weekStart = getWeekStart(new Date())
@@ -502,10 +572,13 @@ const createNewPrize = async () => {
   try {
     const weekStart = getWeekStart(new Date())
 
+    // Calculate initial weekly target from current appointments
+    const initialTarget = await calculateInitialWeeklyTarget()
+
     const prizeData = {
       weekStart: weekStart,
       prizeText: prizeSettings.value.text,
-      weeklyTarget: 0,
+      weeklyTarget: initialTarget,
       weeklyActual: 0,
       isUnlocked: false
     }
@@ -538,42 +611,65 @@ const calculateWeeklyActual = async () => {
     )
 
     const snapshot = await getDocs(q)
-    let totalPaid = 0
-    const dailyTotals: Record<string, number> = {}
-    const dailyTargetTotals: Record<string, number> = {}
+    let totalRevenue = 0 // הכנסה לפי פגישות שהלקוח הגיע אליהן
+    let totalPaid = 0 // תשלומים בפועל
+    const dailyRevenueTotals: Record<string, number> = {} // הכנסה יומית
+    const dailyPaymentTotals: Record<string, number> = {} // תשלומים יומיים
 
     snapshot.forEach((docSnapshot) => {
       const appointment = docSnapshot.data()
       const appointmentDate = appointment.date?.toDate ? appointment.date.toDate() : new Date(appointment.date)
       const dateStr = appointmentDate.toISOString().split('T')[0]
-
-      // Sum price for daily target (all appointments)
       const price = appointment.price || 0
-      dailyTargetTotals[dateStr] = (dailyTargetTotals[dateStr] || 0) + price
+
+      // אם הלקוח הגיע לפגישה - מוסיפים את המחיר להכנסה
+      if (appointment.attended) {
+        totalRevenue += price
+        dailyRevenueTotals[dateStr] = (dailyRevenueTotals[dateStr] || 0) + price
+      }
 
       // Sum all payments for this appointment
       if (appointment.payments && Array.isArray(appointment.payments)) {
         appointment.payments.forEach((payment: any) => {
           const amount = payment.amount || 0
           totalPaid += amount
-          dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + amount
+          dailyPaymentTotals[dateStr] = (dailyPaymentTotals[dateStr] || 0) + amount
         })
       }
     })
 
-    // Update daily payments and targets refs
-    dailyPayments.value = dailyTotals
-    dailyTargets.value = dailyTargetTotals
+    // Update daily revenue and payments refs
+    dailyRevenue.value = dailyRevenueTotals
+    dailyPayments.value = dailyPaymentTotals
+    weeklyPaidAmount.value = totalPaid
 
-    console.log('📊 WeeklyPrize - Daily Targets:', dailyTargetTotals)
-    console.log('📊 WeeklyPrize - Daily Payments:', dailyTotals)
+    // Calculate daily targets based on fixed weekly target (divide by 5 work days)
+    const dailyTargetAmount = currentPrize.value.weeklyTarget > 0
+      ? Math.round(currentPrize.value.weeklyTarget / 5)
+      : 0
 
-    // Update prize with actual amount
+    // Set same target for each work day (Sun-Thu)
+    const targets: Record<string, number> = {}
+    for (let i = 0; i < 5; i++) { // Only work days (0-4 = Sun-Thu)
+      const date = new Date(weekStart)
+      date.setDate(date.getDate() + i)
+      const dateStr = date.toISOString().split('T')[0]
+      targets[dateStr] = dailyTargetAmount
+    }
+    dailyTargets.value = targets
+
+    console.log('📊 WeeklyPrize - Daily Targets (fixed):', targets)
+    console.log('📊 WeeklyPrize - Daily Revenue (attended):', dailyRevenueTotals)
+    console.log('📊 WeeklyPrize - Daily Payments:', dailyPaymentTotals)
+    console.log('📊 WeeklyPrize - Total Revenue (attended):', totalRevenue)
+    console.log('📊 WeeklyPrize - Total Paid:', totalPaid)
+
+    // Update prize with actual revenue amount (but NOT the target)
     if (currentPrize.value.id) {
       await updateDoc(doc(db, 'weekly_prizes', currentPrize.value.id), {
-        weeklyActual: totalPaid
+        weeklyActual: totalRevenue
       })
-      currentPrize.value.weeklyActual = totalPaid
+      currentPrize.value.weeklyActual = totalRevenue
     }
   } catch (error) {
     console.error('Error calculating weekly actual:', error)
@@ -617,6 +713,31 @@ const savePrizeSettings = async () => {
     showSnackbar('שגיאה בשמירת ההגדרות', 'error')
   } finally {
     savingSettings.value = false
+  }
+}
+
+const updateWeeklyTargetFromCalendar = async () => {
+  updatingTarget.value = true
+  try {
+    const newTarget = await calculateInitialWeeklyTarget()
+
+    if (currentPrize.value.id) {
+      await updateDoc(doc(db, 'weekly_prizes', currentPrize.value.id), {
+        weeklyTarget: newTarget
+      })
+
+      currentPrize.value.weeklyTarget = newTarget
+
+      // Recalculate actual and daily targets
+      await calculateWeeklyActual()
+
+      showSnackbar(`יעד שבועי עודכן ל-₪${newTarget.toLocaleString()}`, 'success')
+    }
+  } catch (error) {
+    console.error('Error updating weekly target:', error)
+    showSnackbar('שגיאה בעדכון היעד השבועי', 'error')
+  } finally {
+    updatingTarget.value = false
   }
 }
 
@@ -763,6 +884,7 @@ onMounted(() => {
   gap: 4px;
 }
 
+.day-revenue,
 .day-paid,
 .day-target {
   display: flex;

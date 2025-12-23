@@ -39,6 +39,15 @@ export interface Payment {
 // Appointment Types
 export type DurationCategory = 'on-time' | 'partial' | 'overtime'
 
+// Group Session Participant
+export interface GroupParticipant {
+  clientId: string
+  clientName: string
+  attended: boolean
+  payments: PaymentRecord[] // תשלומים של המשתתף בפגישה זו
+  isRegular: boolean // האם משתתף קבוע או חד-פעמי
+}
+
 export interface Appointment {
   id: string
   clientId: string
@@ -51,12 +60,19 @@ export interface Appointment {
   payments: PaymentRecord[] // מערך תשלומים
   sessionNumber: number // מספר הפגישה של הלקוח
   notes?: string
+  // Old format (for backward compatibility)
+  paymentAmount?: number
+  paymentMethod?: PaymentMethod
   // Session summary (only when attended)
   startTime?: string // HH:mm - שעת התחלה בפועל
   endTime?: string // HH:mm - שעת סיום בפועל
   duration?: number // משך הפגישה בדקות
   durationCategory?: DurationCategory // קטגוריית משך הפגישה
   sessionSummaryNotes?: string // סיכום הפגישה בטקסט חופשי
+  // Group session fields
+  isGroup?: boolean // האם זו פגישת קבוצה
+  groupPrice?: number // מחיר לכל משתתף (ניתן לעריכה)
+  groupParticipants?: GroupParticipant[] // רשימת משתתפים
 }
 
 // Weekly Schedule Template
@@ -66,6 +82,11 @@ export interface ScheduleSlot {
   time: string // HH:mm format
   defaultClientIds: string[] // מספר לקוחות אפשריים
   defaultClientNames: string[] // שמות הלקוחות
+  // Group session fields
+  isGroup?: boolean // האם זו קבוצה טיפולית
+  groupPrice?: number // מחיר לכל משתתף בקבוצה
+  groupParticipantIds?: string[] // משתתפים קבועים בקבוצה
+  groupParticipantNames?: string[] // שמות המשתתפים הקבועים
 }
 
 // Weekly Prize Settings

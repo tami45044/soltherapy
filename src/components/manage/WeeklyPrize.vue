@@ -1,264 +1,294 @@
 <template>
   <v-container fluid>
-    <!-- Header -->
+    <!-- Header with animated gradient -->
     <v-row class="mb-6">
-      <v-col cols="12" class="text-right">
-        <h2 class="text-h4 mb-2">🎁 הפרס השבועי</h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
-          עדכן את המערכת כל יום השבוע וזכה לפתוח את קופסת ההפתעה!
+      <v-col cols="12" class="text-center">
+        <h2 class="text-h3 mb-2 animated-title">
+          <span class="sparkle">✨</span>
+          🎁 הפרס השבועי
+          <span class="sparkle">✨</span>
+        </h2>
+        <p class="text-h6 text-medium-emphasis">
+          עמוד ב-18 פגישות והכנסה של 7,200 ₪ לפחות - וזכה בפרס!
         </p>
       </v-col>
     </v-row>
 
-    <!-- תצוגת הפרס - כולם (למעט כפתור פתיחה שמוצג רק בזמן הנכון) -->
-    <v-row v-if="!currentPrize.isUnlocked" class="mb-6">
-      <v-col cols="12" md="8" class="mx-auto">
-        <v-card class="prize-card" rounded="xl" elevation="8">
-          <v-card-text class="pa-8">
-            <div class="prize-container">
-              <!-- Locked State -->
-              <div v-if="!currentPrize.isUnlocked" class="locked-state">
-                <div class="gift-box" :class="{ 'shake': daysCompleted > 0 }">
+    <!-- Main Prize Card -->
+    <v-row class="mb-6">
+      <v-col cols="12" md="10" lg="8" class="mx-auto">
+        <v-card
+          class="prize-card mega-card"
+          rounded="xl"
+          elevation="24"
+          :class="{ 'victory-mode': canUnlock }"
+        >
+          <!-- Animated background particles -->
+          <div class="particles-container">
+            <div v-for="i in 30" :key="i" class="particle" :style="getParticleStyle(i)"></div>
+          </div>
+
+          <v-card-text class="pa-8 position-relative">
+            <!-- Main Content -->
+            <div v-if="!currentPrize.isUnlocked" class="prize-container">
+
+              <!-- Gift Box with animations -->
+              <div class="gift-box-wrapper">
+                <div class="gift-box" :class="{
+                  'gift-bounce': appointmentsCount > 0,
+                  'gift-glow': canUnlock,
+                  'gift-shake': appointmentsCount >= 10 && appointmentsCount < 18
+                }">
+                  <!-- Floating stars around gift -->
+                  <div v-if="appointmentsCount > 0" class="stars-container">
+                    <div v-for="i in 8" :key="i" class="floating-star" :style="getStarStyle(i)">⭐</div>
+                  </div>
+
                   <v-icon
                     icon="mdi-gift"
-                    :size="isUnlockable ? 150 : 120"
-                    :color="isUnlockable ? 'primary' : 'grey'"
+                    :size="canUnlock ? 180 : 140"
+                    :color="canUnlock ? 'warning' : appointmentsCount >= 10 ? 'primary' : 'grey'"
                     class="gift-icon"
                   />
-                  <div v-if="!isUnlockable" class="lock-overlay">
-                    <v-icon icon="mdi-lock" size="60" color="white" />
+
+                  <!-- Lock overlay -->
+                  <div v-if="!canUnlock" class="lock-overlay">
+                    <v-icon icon="mdi-lock" size="70" color="white" class="lock-icon" />
                   </div>
                 </div>
 
-                <h3 class="text-h4 mt-6 mb-4">
-                  {{ isUnlockable ? '🎉 המתנה מוכנה!' : targetReached ? '🎯 הגעת ליעד!' : '🔒 המתנה נעולה' }}
-                </h3>
+                <!-- Animated rings around gift when close to target -->
+                <div v-if="appointmentsCount >= 15 && !canUnlock" class="energy-rings">
+                  <div class="ring ring-1"></div>
+                  <div class="ring ring-2"></div>
+                  <div class="ring ring-3"></div>
+                </div>
+              </div>
 
-                <p class="text-h6 mb-6">
-                  {{ isUnlockable
-                    ? 'כל הכבוד! הגעת ליעד השבועי!'
-                    : targetReached
-                      ? 'הגעת ליעד! פתיחת המתנה תהיה זמינה במוצאי שבת'
-                      : `הכנסה: ₪${currentPrize.weeklyActual.toLocaleString()} (שולם: ₪${weeklyPaidAmount.toLocaleString()}) מתוך ₪${currentPrize.weeklyTarget.toLocaleString()}`
-                  }}
-                </p>
+              <!-- Status Title -->
+              <h3 class="text-h3 mt-8 mb-4 status-title" :class="canUnlock ? 'victory-text' : ''">
+                <template v-if="canUnlock">
+                  🎉 המתנה מוכנה! 🎉
+                </template>
+                <template v-else-if="appointmentsCount >= 18 && weeklyRevenue < minRevenue">
+                  💰 עוד קצת הכנסה!
+                </template>
+                <template v-else-if="weeklyRevenue >= minRevenue && appointmentsCount < 18">
+                  📅 עוד {{ 18 - appointmentsCount }} פגישות!
+                </template>
+                <template v-else>
+                  🔒 המתנה נעולה
+                </template>
+              </h3>
 
-                <!-- Progress -->
-                <v-progress-linear
-                  :model-value="progress"
-                  height="20"
-                  rounded
-                  color="primary"
-                  class="mb-6"
-                >
-                  <template #default>
-                    <strong>{{ currentPrize.weeklyTarget > 0 ? Math.round(progress) : 0 }}%</strong>
-                  </template>
-                </v-progress-linear>
-
-                <!-- Days Tracking -->
-                <div class="days-tracking mb-6">
-                  <v-row>
-                    <v-col
-                      v-for="day in weekDays"
-                      :key="day.index"
-                      cols="12"
-                      sm="6"
-                      md="4"
-                      lg="3"
-                    >
-                      <v-card
-                        :class="[
-                          'day-card',
-                          {
-                            'day-success': day.metTarget && !day.isFuture,
-                            'day-warning': !day.metTarget && !day.isFuture && day.targetAmount > 0,
-                            'day-future': day.isFuture,
-                            'day-today': day.isToday
-                          }
-                        ]"
-                        rounded="lg"
-                        elevation="2"
+              <!-- Main Stats Display -->
+              <div class="mb-6">
+                <!-- Appointments Counter -->
+                <v-card class="stat-card appointments-card mb-4" rounded="lg" elevation="8">
+                  <v-card-text class="text-center pa-4">
+                    <div class="d-flex align-center justify-center gap-3 flex-wrap">
+                      <div class="stat-icon">📅</div>
+                      <div class="stat-label">פגישות השבוע:</div>
+                      <div class="stat-value mega-number" :class="{ 'goal-reached': appointmentsCount >= 18 }">
+                        <span class="counter-number">{{ appointmentsCount }}</span>
+                        <span class="stat-divider">/</span>
+                        <span class="stat-target">18</span>
+                      </div>
+                      <v-chip
+                        v-if="appointmentsCount >= 18"
+                        color="success"
+                        variant="flat"
+                        prepend-icon="mdi-check-circle"
                       >
-                        <v-card-text class="pa-3">
-                          <div class="day-header-small">
-                            <v-icon
-                              :icon="day.isFuture ? 'mdi-circle-outline' : (day.metTarget ? 'mdi-check-circle' : 'mdi-alert-circle-outline')"
-                              :color="day.isFuture ? 'grey-lighten-1' : (day.metTarget ? 'success' : 'warning')"
-                              size="small"
-                            />
-                            <span class="day-name-small">{{ day.name }}</span>
-                          </div>
-
-                          <div v-if="!day.isFuture" class="day-amounts">
-                            <div class="day-revenue">
-                              <span class="amount-label">הכנסה:</span>
-                              <span class="amount-value">₪{{ day.revenueAmount.toLocaleString() }}</span>
-                            </div>
-                            <div class="day-paid">
-                              <span class="amount-label">שולם:</span>
-                              <span class="amount-value">₪{{ day.paidAmount.toLocaleString() }}</span>
-                            </div>
-                            <div v-if="day.targetAmount > 0" class="day-target">
-                              <span class="amount-label">יעד:</span>
-                              <span class="amount-value">₪{{ day.targetAmount.toLocaleString() }}</span>
-                            </div>
-
-                            <v-chip
-                              v-if="day.metTarget"
-                              size="x-small"
-                              color="success"
-                              variant="flat"
-                              class="mt-2"
-                            >
-                              ✓ עמד ביעד!
-                            </v-chip>
-                            <v-chip
-                              v-else-if="day.targetAmount > 0"
-                              size="x-small"
-                              color="warning"
-                              variant="flat"
-                              class="mt-2"
-                            >
-                              חסר ₪{{ (day.targetAmount - day.revenueAmount).toLocaleString() }}
-                            </v-chip>
-                          </div>
-
-                          <div v-else class="day-future-state">
-                            <v-icon icon="mdi-clock-outline" size="small" color="grey-lighten-1" />
-                            <span class="text-caption text-grey-lighten-1">בקרוב</span>
-                          </div>
-                        </v-card-text>
-                      </v-card>
-                    </v-col>
-                  </v-row>
-                </div>
-
-                <!-- Weekly Summary -->
-                <v-card class="mb-6 financial-summary" rounded="lg" elevation="0">
-                  <v-card-text>
-                    <v-row align="center" justify="center">
-                      <v-col cols="12" md="4" class="text-center">
-                        <div class="financial-label">יעד שבועי</div>
-                        <div class="financial-value target-value">
-                          ₪{{ currentPrize.weeklyTarget.toLocaleString() }}
-                        </div>
-                      </v-col>
-                      <v-col cols="12" md="4" class="text-center">
-                        <div class="financial-label">הכנסה בפועל</div>
-                        <div class="financial-value actual-value" :class="{ 'target-reached': targetReached }">
-                          ₪{{ currentPrize.weeklyActual.toLocaleString() }}
-                        </div>
-                      </v-col>
-                      <v-col cols="12" md="4" class="text-center">
-                        <div class="financial-label">שולם מזה</div>
-                        <div class="financial-value" style="color: #4CAF50;">
-                          ₪{{ weeklyPaidAmount.toLocaleString() }}
-                        </div>
-                      </v-col>
-                    </v-row>
+                        ✓ יעד הפגישות הושג!
+                      </v-chip>
+                    </div>
+                    <v-progress-linear
+                      :model-value="appointmentsProgress"
+                      height="12"
+                      rounded
+                      :color="appointmentsCount >= 18 ? 'success' : 'primary'"
+                      class="mt-3"
+                    >
+                      <template #default>
+                        <strong class="text-white text-caption">{{ Math.round(appointmentsProgress) }}%</strong>
+                      </template>
+                    </v-progress-linear>
                   </v-card-text>
                 </v-card>
 
-                <!-- Unlock Button - רק במוצאי שבת + עמד ביעד -->
-                <v-btn
-                  v-if="isUnlockable"
-                  color="white"
-                  size="x-large"
-                  rounded="xl"
-                  elevation="8"
-                  class="unlock-button"
-                  :loading="unlocking"
-                  @click="unlockPrize"
-                >
-                  <v-icon icon="mdi-gift-open" size="large" />
-                  פתח את המתנה!
-                </v-btn>
-
-                <!-- הודעה למשתמש רגיל -->
-                <p v-else-if="!isAdmin" class="text-body-1 text-medium-emphasis">
-                  {{ targetReached
-                    ? '🎯 מעולה! הגעת ליעד! פתיחת המתנה תהיה זמינה במוצאי שבת (שבת אחרי 20:00 או ביום ראשון) 🎁'
-                    : '💪 המשך לעדכן תשלומים כדי להגיע ליעד השבועי!'
-                  }}
-                </p>
-
-                <!-- הודעה למנהל -->
-                <p v-else class="text-body-1 text-medium-emphasis">
-                  {{ targetReached
-                    ? 'פתיחת המתנה תהיה זמינה במוצאי שבת (שבת אחרי 20:00 או ביום ראשון) 🎁'
-                    : 'המשך לעדכן תשלומים כדי להגיע ליעד השבועי! 💪'
-                  }}
-                </p>
-              </div>
-
-              <!-- Unlocked State -->
-              <div v-else class="unlocked-state">
-                <!-- Confetti Background -->
-                <div class="confetti-container">
-                  <div class="confetti" v-for="i in 50" :key="i" :style="getConfettiStyle(i)"></div>
-                </div>
-
-                <!-- Gift Box Opening Animation -->
-                <div class="gift-opening-container">
-                  <div class="gift-box-bottom">
-                    <v-icon
-                      icon="mdi-gift"
-                      size="80"
-                      color="success"
-                    />
-                  </div>
-                  <div class="gift-box-lid">
-                    <v-icon
-                      icon="mdi-gift"
-                      size="40"
-                      color="success"
-                    />
-                  </div>
-
-                  <!-- Prize popping out -->
-                  <div class="prize-popup">
-                    <v-icon
-                      icon="mdi-star-circle"
-                      size="100"
-                      color="warning"
-                      class="prize-star"
-                    />
-                  </div>
-                </div>
-
-                <h3 class="text-h3 mb-4 mt-8 celebration-text">🎉 מזל טוב!</h3>
-
-                <p class="text-h6 mb-6 achievement-text">
-                  עמדת ביעד השבועי! הכנסת השבוע ₪{{ currentPrize.weeklyActual.toLocaleString() }} (שולם: ₪{{ weeklyPaidAmount.toLocaleString() }})
-                </p>
-
-                <v-card class="prize-reveal" rounded="xl" elevation="8">
-                  <v-card-text class="pa-8">
-                    <p class="text-h5 mb-3 text-success">הפרס שלך:</p>
-                    <p class="text-h4 font-weight-bold text-primary">
-                      {{ currentPrize.prizeText }}
-                    </p>
+                <!-- Revenue Counter -->
+                <v-card class="stat-card revenue-card" rounded="lg" elevation="8">
+                  <v-card-text class="text-center pa-4">
+                    <div class="d-flex align-center justify-center gap-3 flex-wrap">
+                      <div class="stat-icon">💰</div>
+                      <div class="stat-label">הכנסה השבוע:</div>
+                      <div class="stat-value mega-number" :class="{ 'goal-reached': weeklyRevenue >= minRevenue }">
+                        <span class="currency">₪</span>
+                        <span class="counter-number">{{ weeklyRevenue.toLocaleString() }}</span>
+                      </div>
+                      <div class="stat-subtext">(יעד: ₪7,200)</div>
+                      <v-chip
+                        v-if="weeklyRevenue >= minRevenue"
+                        color="success"
+                        variant="flat"
+                        prepend-icon="mdi-check-circle"
+                      >
+                        ✓ יעד ההכנסה הושג!
+                      </v-chip>
+                    </div>
+                    <v-progress-linear
+                      :model-value="revenueProgress"
+                      height="12"
+                      rounded
+                      :color="weeklyRevenue >= minRevenue ? 'success' : 'warning'"
+                      class="mt-3"
+                    >
+                      <template #default>
+                        <strong class="text-white text-caption">{{ Math.round(revenueProgress) }}%</strong>
+                      </template>
+                    </v-progress-linear>
                   </v-card-text>
                 </v-card>
-
-                <p class="text-body-1 mt-6 text-medium-emphasis">
-                  נפתח ב: {{ formatDateTime(currentPrize.unlockedAt!) }}
-                </p>
-
-                <v-btn
-                  v-if="isAdmin"
-                  color="primary"
-                  size="large"
-                  rounded="xl"
-                  class="mt-6"
-                  @click="startNewWeek"
-                >
-                  <v-icon icon="mdi-restart" />
-                  התחל שבוע חדש
-                </v-btn>
               </div>
+
+              <!-- Additional Info -->
+              <v-card class="info-card mb-6" rounded="lg" variant="flat" color="success" elevation="4">
+                <v-card-text class="text-center pa-6">
+                  <div class="text-h5 mb-3 font-weight-bold text-white">
+                    💵 שולם בפועל: ₪{{ weeklyPaidAmount.toLocaleString() }}
+                  </div>
+                  <div class="text-body-2 text-white" style="opacity: 0.9;">
+                    (סכום זה לא משפיע על היעד - רק ההכנסה הכוללת וכמות הפגישות)
+                  </div>
+                </v-card-text>
+              </v-card>
+
+              <!-- Unlock Button -->
+              <v-btn
+                v-if="canUnlock"
+                color="warning"
+                size="x-large"
+                rounded="xl"
+                elevation="12"
+                class="mega-unlock-button"
+                :loading="unlocking"
+                @click="unlockPrize"
+              >
+                <v-icon icon="mdi-gift-open" size="40" class="mr-2" />
+                <span class="button-text">פתח את המתנה!</span>
+                <v-icon icon="mdi-gift-open" size="40" class="ml-2" />
+              </v-btn>
+
+              <!-- Admin Demo Button (only for testing) -->
+              <v-btn
+                v-if="isAdmin && !canUnlock"
+                color="deep-purple"
+                size="large"
+                rounded="xl"
+                elevation="8"
+                class="mt-4"
+                :loading="unlocking"
+                @click="unlockPrize"
+              >
+                <v-icon icon="mdi-test-tube" class="mr-2" />
+                🎬 דמה פתיחת מתנה (בדיקה)
+              </v-btn>
+
+              <!-- Status Message -->
+              <p v-else-if="!isAdmin" class="text-h6 text-center mt-6 status-message">
+                <template v-if="appointmentsCount >= 18 && weeklyRevenue >= minRevenue">
+                  🎯 מעולה! הגעת ליעד!<br>
+                  פתיחת המתנה תהיה זמינה במוצאי שבת (אחרי 20:00) או ביום ראשון 🎁
+                </template>
+                <template v-else>
+                  💪 המשך לעבוד - אתה בדרך לפרס!
+                </template>
+              </p>
+
+              <!-- Admin Status Message -->
+              <v-alert
+                v-else-if="isAdmin && !canUnlock"
+                type="info"
+                variant="tonal"
+                class="mt-4"
+              >
+                <div class="text-body-1">
+                  <strong>מצב נוכחי:</strong><br>
+                  📅 פגישות: {{ appointmentsCount }}/18 {{ appointmentsCount >= 18 ? '✓' : '✗' }}<br>
+                  💰 הכנסה: ₪{{ weeklyRevenue.toLocaleString() }}/₪7,200 {{ weeklyRevenue >= minRevenue ? '✓' : '✗' }}<br>
+                  🕐 זמן: {{ isSaturdayEvening ? 'מוצ"ש/ראשון ✓' : 'לא מוצ"ש ✗' }}<br><br>
+                  <strong>לחץ על "דמה פתיחת מתנה" כדי לראות את האנימציות!</strong>
+                </div>
+              </v-alert>
+
             </div>
+
+            <!-- Unlocked State with MEGA celebration -->
+            <div v-else class="unlocked-state">
+              <!-- Massive Confetti -->
+              <div class="mega-confetti-container">
+                <div class="confetti" v-for="i in 100" :key="i" :style="getConfettiStyle(i)"></div>
+              </div>
+
+              <!-- Fireworks -->
+              <div class="fireworks-container">
+                <div v-for="i in 5" :key="i" class="firework" :style="getFireworkStyle(i)"></div>
+              </div>
+
+              <!-- Balloons -->
+              <div class="balloons-container">
+                <div v-for="i in 10" :key="i" class="balloon" :style="getBalloonStyle(i)">🎈</div>
+              </div>
+
+              <!-- Gift Opening Animation -->
+              <div class="mega-gift-opening">
+                <div class="gift-explosion">💥</div>
+                <div class="prize-star-burst">
+                  <v-icon
+                    icon="mdi-trophy-award"
+                    size="150"
+                    color="warning"
+                    class="trophy-icon"
+                  />
+                </div>
+              </div>
+
+              <h3 class="text-h2 mb-6 mt-8 mega-celebration-text">
+                🎊 כל הכבוד! 🎊
+              </h3>
+
+              <p class="text-h5 mb-6 achievement-text">
+                השלמת {{ appointmentsCount }} פגישות והכנסת ₪{{ weeklyRevenue.toLocaleString() }}!
+              </p>
+
+              <!-- Prize Reveal with animation -->
+              <v-card class="prize-reveal-card" rounded="xl" elevation="16">
+                <v-card-text class="pa-10">
+                  <p class="text-h4 mb-4 text-success">🏆 הפרס שלך:</p>
+                  <p class="text-h3 font-weight-bold prize-text">
+                    {{ currentPrize.prizeText }}
+                  </p>
+                </v-card-text>
+              </v-card>
+
+              <p class="text-body-1 mt-6 text-medium-emphasis">
+                נפתח ב: {{ formatDateTime(currentPrize.unlockedAt!) }}
+              </p>
+
+              <v-btn
+                v-if="isAdmin"
+                color="primary"
+                size="large"
+                rounded="xl"
+                class="mt-6"
+                @click="startNewWeek"
+              >
+                <v-icon icon="mdi-restart" />
+                התחל שבוע חדש
+              </v-btn>
+            </div>
+
           </v-card-text>
         </v-card>
       </v-col>
@@ -274,9 +304,15 @@
           </v-card-title>
 
           <v-card-text class="pa-6">
-            <p class="text-subtitle-2 mb-4 text-medium-emphasis">
-              היעד השבועי נקבע בתחילת השבוע לפי הפגישות ביומן. היעד לא משתנה אוטומטית - זה מאפשר גמישות בזמני הפגישות. הפרס יהיה זמין לפתיחה במוצאי שבת אם הושג היעד.
-            </p>
+            <v-alert type="info" variant="tonal" class="mb-4">
+              <div class="text-body-2">
+                <strong>יעד שבועי:</strong> 18 פגישות + ₪7,200 הכנסה מינימום<br>
+                <strong>סטטוס נוכחי:</strong><br>
+                - פגישות: {{ appointmentsCount }} / 18<br>
+                - הכנסה: ₪{{ weeklyRevenue.toLocaleString() }} / ₪7,200<br>
+                - שולם: ₪{{ weeklyPaidAmount.toLocaleString() }}
+              </div>
+            </v-alert>
 
             <v-text-field
               v-model="prizeSettings.text"
@@ -287,56 +323,17 @@
               class="mb-4"
             />
 
-            <v-alert
-              v-if="currentPrize.weeklyTarget > 0"
-              type="info"
-              variant="tonal"
-              class="mb-4"
+            <v-btn
+              color="primary"
+              rounded="xl"
+              block
+              size="large"
+              :loading="savingSettings"
+              @click="savePrizeSettings"
             >
-              <div class="text-body-2">
-                <strong>יעד שבועי נוכחי:</strong> ₪{{ currentPrize.weeklyTarget.toLocaleString() }}<br>
-                <strong>הכנסה בפועל:</strong> ₪{{ currentPrize.weeklyActual.toLocaleString() }}<br>
-                <strong>שולם מזה:</strong> ₪{{ weeklyPaidAmount.toLocaleString() }}
-              </div>
-            </v-alert>
-
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-btn
-                  color="primary"
-                  rounded="xl"
-                  block
-                  :loading="savingSettings"
-                  @click="savePrizeSettings"
-                >
-                  <v-icon icon="mdi-content-save" />
-                  שמור תיאור פרס
-                </v-btn>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-btn
-                  color="warning"
-                  rounded="xl"
-                  block
-                  :loading="updatingTarget"
-                  @click="updateWeeklyTargetFromCalendar"
-                >
-                  <v-icon icon="mdi-calculator" />
-                  עדכן יעד מהיומן
-                </v-btn>
-              </v-col>
-            </v-row>
-
-            <v-alert
-              type="warning"
-              variant="tonal"
-              class="mt-4"
-              density="compact"
-            >
-              <div class="text-caption">
-                💡 היעד השבועי נקבע בתחילת השבוע ולא משתנה אוטומטית. לחץ על "עדכן יעד מהיומן" רק במקרים חריגים.
-              </div>
-            </v-alert>
+              <v-icon icon="mdi-content-save" />
+              שמור תיאור פרס
+            </v-btn>
           </v-card-text>
         </v-card>
       </v-col>
@@ -351,7 +348,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, doc, getDocs, query, where } from 'firebase/firestore'
 import { db, auth } from '@/firebase'
 import type { WeeklyPrize } from '@/types/manage'
 
@@ -360,7 +357,7 @@ const currentPrize = ref<WeeklyPrize>({
   id: '',
   weekStart: getWeekStart(new Date()),
   prizeText: 'הפתעה מיוחדת! 🎁',
-  weeklyTarget: 0,
+  weeklyTarget: 7200, // Fixed target
   weeklyActual: 0,
   isUnlocked: false
 })
@@ -371,11 +368,10 @@ const prizeSettings = ref({
 
 const unlocking = ref(false)
 const savingSettings = ref(false)
-const updatingTarget = ref(false)
-const dailyRevenue = ref<Record<string, number>>({}) // הכנסה יומית (attended appointments)
-const dailyPayments = ref<Record<string, number>>({}) // סכום תשלומים לכל יום
-const dailyTargets = ref<Record<string, number>>({}) // יעד קבוע לכל יום
-const weeklyPaidAmount = ref(0) // סכום שולם בפועל השבוע
+const appointmentsCount = ref(0) // מספר פגישות בשבוע
+const weeklyRevenue = ref(0) // הכנסה כוללת
+const weeklyPaidAmount = ref(0) // סכום שולם בפועל
+const minRevenue = 7200 // הכנסה מינימלית נדרשת
 
 const snackbar = ref({
   show: false,
@@ -383,84 +379,33 @@ const snackbar = ref({
   color: 'success'
 })
 
-// Constants
-const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
-
-// Check if user is admin (gift@gift.co.il)
+// Check if user is admin
 const isAdmin = computed(() => {
   return auth.currentUser?.email === 'gift@gift.co.il'
 })
 
-// Computed
-const progress = computed(() => {
-  if (currentPrize.value.weeklyTarget === 0) return 0
-  return Math.min((currentPrize.value.weeklyActual / currentPrize.value.weeklyTarget) * 100, 100)
+// Progress calculations
+const appointmentsProgress = computed(() => {
+  return Math.min((appointmentsCount.value / 18) * 100, 100)
 })
 
-const targetReached = computed(() => {
-  return currentPrize.value.weeklyActual >= currentPrize.value.weeklyTarget && currentPrize.value.weeklyTarget > 0
+const revenueProgress = computed(() => {
+  return Math.min((weeklyRevenue.value / minRevenue) * 100, 100)
 })
 
+// Can unlock if: 18+ appointments AND 7200+ revenue AND saturday evening/sunday
 const isSaturdayEvening = computed(() => {
   const now = new Date()
   const day = now.getDay()
   const hour = now.getHours()
-
-  // Saturday (6) after 20:00 or Sunday (0)
   return (day === 6 && hour >= 20) || day === 0
 })
 
-const isUnlockable = computed(() => {
-  return targetReached.value && isSaturdayEvening.value && !currentPrize.value.isUnlocked
-})
-
-// יעד יומי - מחולק על 5 ימי עבודה (ראשון-חמישי)
-const dailyTarget = computed(() => {
-  if (currentPrize.value.weeklyTarget === 0) return 0
-  return Math.round(currentPrize.value.weeklyTarget / 5)
-})
-
-// ימי השבוע עם סטטוס
-const weekDays = computed(() => {
-  const days = []
-  const weekStart = getWeekStart(new Date())
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(weekStart)
-    date.setDate(date.getDate() + i)
-    const dateStr = date.toISOString().split('T')[0]
-
-    const revenueAmount = dailyRevenue.value[dateStr] || 0 // הכנסה (attended)
-    const paidAmount = dailyPayments.value[dateStr] || 0 // שולם בפועל
-    const targetForDay = dailyTargets.value[dateStr] || 0 // יעד קבוע
-    const isPast = date < today
-    const isToday = date.getTime() === today.getTime()
-
-    const metTarget = revenueAmount >= targetForDay && targetForDay > 0
-
-    days.push({
-      index: i,
-      name: hebrewDays[i],
-      date: date,
-      dateStr: dateStr,
-      revenueAmount: revenueAmount, // הכנסה
-      paidAmount: paidAmount, // תשלומים
-      targetAmount: targetForDay,
-      isPast: isPast,
-      isToday: isToday,
-      isFuture: date > today,
-      metTarget: metTarget,
-      status: date > today ? 'future' : (metTarget ? 'success' : 'warning')
-    })
-  }
-  return days
-})
-
-// כמה ימים עמדו ביעד
-const daysCompleted = computed(() => {
-  return weekDays.value.filter(d => d.metTarget && (d.isPast || d.isToday)).length
+const canUnlock = computed(() => {
+  return appointmentsCount.value >= 18 &&
+         weeklyRevenue.value >= minRevenue &&
+         isSaturdayEvening.value &&
+         !currentPrize.value.isUnlocked
 })
 
 // Helper Functions
@@ -483,12 +428,44 @@ function formatDateTime(date: Date): string {
   }).format(date)
 }
 
+// Animation styles
+function getParticleStyle(index: number) {
+  const size = 3 + Math.random() * 5
+  const x = Math.random() * 100
+  const y = Math.random() * 100
+  const delay = Math.random() * 3
+  const duration = 3 + Math.random() * 4
+
+  return {
+    left: `${x}%`,
+    top: `${y}%`,
+    width: `${size}px`,
+    height: `${size}px`,
+    animationDelay: `${delay}s`,
+    animationDuration: `${duration}s`
+  }
+}
+
+function getStarStyle(index: number) {
+  const angle = (index / 8) * 360
+  const radius = 100
+  const x = Math.cos((angle * Math.PI) / 180) * radius
+  const y = Math.sin((angle * Math.PI) / 180) * radius
+  const delay = index * 0.1
+
+  return {
+    left: `calc(50% + ${x}px)`,
+    top: `calc(50% + ${y}px)`,
+    animationDelay: `${delay}s`
+  }
+}
+
 function getConfettiStyle(index: number) {
-  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE']
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#FF69B4']
   const randomColor = colors[index % colors.length]
   const randomLeft = Math.random() * 100
-  const randomDelay = Math.random() * 2
-  const randomDuration = 2 + Math.random() * 2
+  const randomDelay = Math.random() * 3
+  const randomDuration = 2 + Math.random() * 3
 
   return {
     left: `${randomLeft}%`,
@@ -498,37 +475,29 @@ function getConfettiStyle(index: number) {
   }
 }
 
-// Methods
-const calculateInitialWeeklyTarget = async (): Promise<number> => {
-  try {
-    const weekStart = getWeekStart(new Date())
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 7)
+function getFireworkStyle(index: number) {
+  const x = 20 + (index * 15)
+  const delay = index * 0.3
 
-    // Get all appointments this week
-    const appointmentsRef = collection(db, 'appointments')
-    const q = query(
-      appointmentsRef,
-      where('date', '>=', weekStart),
-      where('date', '<', weekEnd)
-    )
-
-    const snapshot = await getDocs(q)
-    let totalTarget = 0
-
-    snapshot.forEach((docSnapshot) => {
-      const appointment = docSnapshot.data()
-      totalTarget += appointment.price || 0
-    })
-
-    console.log('🎯 Initial Weekly Target calculated:', totalTarget)
-    return totalTarget
-  } catch (error) {
-    console.error('Error calculating initial target:', error)
-    return 0
+  return {
+    left: `${x}%`,
+    animationDelay: `${delay}s`
   }
 }
 
+function getBalloonStyle(index: number) {
+  const x = 10 + (index * 8)
+  const delay = index * 0.2
+  const duration = 4 + Math.random() * 2
+
+  return {
+    left: `${x}%`,
+    animationDelay: `${delay}s`,
+    animationDuration: `${duration}s`
+  }
+}
+
+// Methods
 const loadPrize = async () => {
   try {
     const weekStart = getWeekStart(new Date())
@@ -544,7 +513,6 @@ const loadPrize = async () => {
     const snapshot = await getDocs(q)
 
     if (snapshot.empty) {
-      // Create new prize for this week
       await createNewPrize()
     } else {
       const doc = snapshot.docs[0]
@@ -555,13 +523,11 @@ const loadPrize = async () => {
         unlockedAt: doc.data().unlockedAt?.toDate()
       } as WeeklyPrize
 
-      // Update prize settings
       prizeSettings.value = {
         text: currentPrize.value.prizeText
       }
 
-      // Calculate actual payments this week
-      await calculateWeeklyActual()
+      await calculateWeeklyStats()
     }
   } catch (error) {
     console.error('Error loading prize:', error)
@@ -572,13 +538,10 @@ const createNewPrize = async () => {
   try {
     const weekStart = getWeekStart(new Date())
 
-    // Calculate initial weekly target from current appointments
-    const initialTarget = await calculateInitialWeeklyTarget()
-
     const prizeData = {
       weekStart: weekStart,
       prizeText: prizeSettings.value.text,
-      weeklyTarget: initialTarget,
+      weeklyTarget: minRevenue,
       weeklyActual: 0,
       isUnlocked: false
     }
@@ -590,19 +553,18 @@ const createNewPrize = async () => {
       ...prizeData
     }
 
-    await calculateWeeklyActual()
+    await calculateWeeklyStats()
   } catch (error) {
     console.error('Error creating prize:', error)
   }
 }
 
-const calculateWeeklyActual = async () => {
+const calculateWeeklyStats = async () => {
   try {
     const weekStart = getWeekStart(new Date())
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekEnd.getDate() + 7)
 
-    // Get all appointments this week
     const appointmentsRef = collection(db, 'appointments')
     const q = query(
       appointmentsRef,
@@ -611,60 +573,57 @@ const calculateWeeklyActual = async () => {
     )
 
     const snapshot = await getDocs(q)
-    let totalRevenue = 0 // הכנסה לפי פגישות שהלקוח הגיע אליהן
-    let totalPaid = 0 // תשלומים בפועל
-    const dailyRevenueTotals: Record<string, number> = {} // הכנסה יומית
-    const dailyPaymentTotals: Record<string, number> = {} // תשלומים יומיים
+    let totalAppointments = 0
+    let totalRevenue = 0
+    let totalPaid = 0
 
     snapshot.forEach((docSnapshot) => {
       const appointment = docSnapshot.data()
-      const appointmentDate = appointment.date?.toDate ? appointment.date.toDate() : new Date(appointment.date)
-      const dateStr = appointmentDate.toISOString().split('T')[0]
-      const price = appointment.price || 0
 
-      // אם הלקוח הגיע לפגישה - מוסיפים את המחיר להכנסה
-      if (appointment.attended) {
-        totalRevenue += price
-        dailyRevenueTotals[dateStr] = (dailyRevenueTotals[dateStr] || 0) + price
+      // Count attended appointments (regular)
+      if (appointment.attended && !appointment.isGroup) {
+        totalAppointments++
+        totalRevenue += appointment.price || 0
+
+        // Sum payments
+        if (appointment.payments && Array.isArray(appointment.payments)) {
+          appointment.payments.forEach((payment: any) => {
+            totalPaid += payment.amount || 0
+          })
+        }
       }
 
-      // Sum all payments for this appointment
-      if (appointment.payments && Array.isArray(appointment.payments)) {
-        appointment.payments.forEach((payment: any) => {
-          const amount = payment.amount || 0
-          totalPaid += amount
-          dailyPaymentTotals[dateStr] = (dailyPaymentTotals[dateStr] || 0) + amount
+      // Count group appointments - ONE appointment per group (not per participant!)
+      if (appointment.isGroup && appointment.groupParticipants && Array.isArray(appointment.groupParticipants)) {
+        // Count as ONE appointment for the group
+        totalAppointments++
+
+        // But count revenue and payments per attended participant
+        appointment.groupParticipants.forEach((p: any) => {
+          if (p.attended) {
+            totalRevenue += appointment.groupPrice || 0
+
+            // Sum participant payments
+            if (p.payments && Array.isArray(p.payments)) {
+              p.payments.forEach((payment: any) => {
+                totalPaid += payment.amount || 0
+              })
+            }
+          }
         })
       }
     })
 
-    // Update daily revenue and payments refs
-    dailyRevenue.value = dailyRevenueTotals
-    dailyPayments.value = dailyPaymentTotals
+    appointmentsCount.value = totalAppointments
+    weeklyRevenue.value = totalRevenue
     weeklyPaidAmount.value = totalPaid
 
-    // Calculate daily targets based on fixed weekly target (divide by 5 work days)
-    const dailyTargetAmount = currentPrize.value.weeklyTarget > 0
-      ? Math.round(currentPrize.value.weeklyTarget / 5)
-      : 0
+    console.log('📊 Weekly Stats:')
+    console.log('  Appointments:', totalAppointments)
+    console.log('  Revenue:', totalRevenue)
+    console.log('  Paid:', totalPaid)
 
-    // Set same target for each work day (Sun-Thu)
-    const targets: Record<string, number> = {}
-    for (let i = 0; i < 5; i++) { // Only work days (0-4 = Sun-Thu)
-      const date = new Date(weekStart)
-      date.setDate(date.getDate() + i)
-      const dateStr = date.toISOString().split('T')[0]
-      targets[dateStr] = dailyTargetAmount
-    }
-    dailyTargets.value = targets
-
-    console.log('📊 WeeklyPrize - Daily Targets (fixed):', targets)
-    console.log('📊 WeeklyPrize - Daily Revenue (attended):', dailyRevenueTotals)
-    console.log('📊 WeeklyPrize - Daily Payments:', dailyPaymentTotals)
-    console.log('📊 WeeklyPrize - Total Revenue (attended):', totalRevenue)
-    console.log('📊 WeeklyPrize - Total Paid:', totalPaid)
-
-    // Update prize with actual revenue amount (but NOT the target)
+    // Update prize
     if (currentPrize.value.id) {
       await updateDoc(doc(db, 'weekly_prizes', currentPrize.value.id), {
         weeklyActual: totalRevenue
@@ -672,7 +631,7 @@ const calculateWeeklyActual = async () => {
       currentPrize.value.weeklyActual = totalRevenue
     }
   } catch (error) {
-    console.error('Error calculating weekly actual:', error)
+    console.error('Error calculating weekly stats:', error)
   }
 }
 
@@ -716,31 +675,6 @@ const savePrizeSettings = async () => {
   }
 }
 
-const updateWeeklyTargetFromCalendar = async () => {
-  updatingTarget.value = true
-  try {
-    const newTarget = await calculateInitialWeeklyTarget()
-
-    if (currentPrize.value.id) {
-      await updateDoc(doc(db, 'weekly_prizes', currentPrize.value.id), {
-        weeklyTarget: newTarget
-      })
-
-      currentPrize.value.weeklyTarget = newTarget
-
-      // Recalculate actual and daily targets
-      await calculateWeeklyActual()
-
-      showSnackbar(`יעד שבועי עודכן ל-₪${newTarget.toLocaleString()}`, 'success')
-    }
-  } catch (error) {
-    console.error('Error updating weekly target:', error)
-    showSnackbar('שגיאה בעדכון היעד השבועי', 'error')
-  } finally {
-    updatingTarget.value = false
-  }
-}
-
 const startNewWeek = async () => {
   try {
     await createNewPrize()
@@ -762,33 +696,144 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.prize-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+/* Animated Title */
+.animated-title {
+  background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #667eea);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
 }
 
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.sparkle {
+  display: inline-block;
+  animation: sparkle-rotate 2s linear infinite;
+}
+
+/* Prize Container */
 .prize-container {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes sparkle-rotate {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+}
+
+/* Main Prize Card */
+.prize-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-size: 200% 200%;
+  animation: gradient-flow 8s ease infinite;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.prize-card.victory-mode {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd700 100%);
+  background-size: 200% 200%;
+  animation: victory-gradient 3s ease infinite, card-pulse 2s ease infinite;
+}
+
+@keyframes gradient-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes victory-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes card-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 50px rgba(255, 215, 0, 0.5); }
+  50% { transform: scale(1.02); box-shadow: 0 0 80px rgba(255, 215, 0, 0.8); }
+}
+
+/* Particles */
+.particles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  animation: particle-float 6s ease-in-out infinite;
+}
+
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  50% { transform: translateY(-30px) translateX(30px); opacity: 0.7; }
+}
+
+/* Gift Box */
+.gift-box-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 40px 0;
 }
 
 .gift-box {
   position: relative;
   display: inline-block;
-  transition: transform 0.3s;
+  transition: all 0.3s ease;
 }
 
-.gift-box.shake {
-  animation: shake 0.5s infinite;
+.gift-box.gift-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
 }
 
-@keyframes shake {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-5deg); }
-  75% { transform: rotate(5deg); }
+.gift-box.gift-shake {
+  animation: excited-shake 0.5s ease-in-out infinite;
+}
+
+.gift-box.gift-glow {
+  animation: mega-glow 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.8));
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes excited-shake {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-10deg) scale(1.05); }
+  75% { transform: rotate(10deg) scale(1.05); }
+}
+
+@keyframes mega-glow {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.8));
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+    filter: drop-shadow(0 0 60px rgba(255, 215, 0, 1));
+  }
 }
 
 .gift-icon {
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.4));
 }
 
 .lock-overlay {
@@ -796,130 +841,236 @@ onMounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 50%;
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: lock-pulse 2s ease-in-out infinite;
 }
 
-.financial-summary {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+@keyframes lock-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
 }
 
-.financial-label {
-  font-size: 0.9rem;
-  opacity: 0.9;
-  margin-bottom: 8px;
+.lock-icon {
+  animation: lock-shake 3s ease-in-out infinite;
 }
 
-.financial-value {
-  font-size: 2rem;
-  font-weight: bold;
-  line-height: 1;
+@keyframes lock-shake {
+  0%, 90%, 100% { transform: rotate(0deg); }
+  92%, 96% { transform: rotate(-5deg); }
+  94%, 98% { transform: rotate(5deg); }
 }
 
-.target-value {
-  color: #FFC107;
+/* Floating Stars */
+.stars-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 
-.actual-value {
-  color: #E3F2FD;
+.floating-star {
+  position: absolute;
+  font-size: 24px;
+  animation: star-float 3s ease-in-out infinite;
 }
 
-.actual-value.target-reached {
-  color: #4CAF50;
-  text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+@keyframes star-float {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 1;
+  }
 }
 
-/* Days Tracking Styles */
-.days-tracking {
+/* Energy Rings */
+.energy-rings {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+}
+
+.ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 3px solid rgba(255, 215, 0, 0.6);
+  border-radius: 50%;
+  animation: ring-expand 2s ease-out infinite;
+}
+
+.ring-1 { animation-delay: 0s; }
+.ring-2 { animation-delay: 0.7s; }
+.ring-3 { animation-delay: 1.4s; }
+
+@keyframes ring-expand {
+  0% {
+    width: 50px;
+    height: 50px;
+    opacity: 1;
+  }
+  100% {
+    width: 250px;
+    height: 250px;
+    opacity: 0;
+  }
+}
+
+/* Status Title */
+.status-title {
+  animation: title-pulse 2s ease-in-out infinite;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  text-align: center;
   width: 100%;
 }
 
-.day-card {
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(5px);
-  border: 2px solid transparent;
+.victory-text {
+  animation: rainbow-text 2s linear infinite, bounce-text 1s ease-in-out infinite;
+  font-size: 3rem !important;
 }
 
-.day-card.day-success {
-  background: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-.day-card.day-warning {
-  background: rgba(255, 152, 0, 0.15);
-  border-color: rgba(255, 152, 0, 0.3);
-}
-
-.day-card.day-future {
-  opacity: 0.5;
-}
-
-.day-card.day-today {
-  border-color: rgba(255, 193, 7, 0.6);
-  box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
-}
-
-.day-header-small {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.day-name-small {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.day-amounts {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.day-revenue,
-.day-paid,
-.day-target {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-}
-
-.amount-label {
-  opacity: 0.8;
-}
-
-.amount-value {
-  font-weight: 600;
-}
-
-.day-future-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 0;
-}
-
-/* Button Animation */
-.unlock-button {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
+@keyframes title-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
 }
 
-/* Confetti Animation */
-.confetti-container {
+@keyframes rainbow-text {
+  0% { text-shadow: 0 0 20px #ff0000; }
+  20% { text-shadow: 0 0 20px #ff7700; }
+  40% { text-shadow: 0 0 20px #ffff00; }
+  60% { text-shadow: 0 0 20px #00ff00; }
+  80% { text-shadow: 0 0 20px #0000ff; }
+  100% { text-shadow: 0 0 20px #ff0000; }
+}
+
+@keyframes bounce-text {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Stat Cards */
+.stat-card {
+  background: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3) !important;
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+@keyframes icon-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.1); }
+}
+
+.stat-label {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #666;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mega-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #667eea;
+  line-height: 1;
+  transition: all 0.5s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mega-number.goal-reached {
+  color: #4CAF50;
+  animation: number-celebrate 1s ease-in-out infinite;
+}
+
+@keyframes number-celebrate {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.counter-number {
+  animation: counter-glow 2s ease-in-out infinite;
+}
+
+@keyframes counter-glow {
+  0%, 100% { text-shadow: 0 0 10px rgba(102, 126, 234, 0.3); }
+  50% { text-shadow: 0 0 20px rgba(102, 126, 234, 0.6); }
+}
+
+.stat-divider {
+  margin: 0 10px;
+  opacity: 0.5;
+}
+
+.stat-target {
+  opacity: 0.7;
+}
+
+.currency {
+  font-size: 2rem;
+  margin-right: 8px;
+}
+
+.stat-subtext {
+  font-size: 1rem;
+  color: #999;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Mega Unlock Button */
+.mega-unlock-button {
+  animation: mega-button-pulse 1.5s ease-in-out infinite, rainbow-border 3s linear infinite;
+  font-size: 1.5rem !important;
+  padding: 32px 48px !important;
+  min-height: 80px !important;
+  background: linear-gradient(45deg, #ffd700, #ffed4e, #ffd700) !important;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.6), 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+@keyframes mega-button-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes rainbow-border {
+  0%, 100% { box-shadow: 0 0 40px #ff0000, 0 10px 30px rgba(0, 0, 0, 0.3); }
+  33% { box-shadow: 0 0 40px #00ff00, 0 10px 30px rgba(0, 0, 0, 0.3); }
+  66% { box-shadow: 0 0 40px #0000ff, 0 10px 30px rgba(0, 0, 0, 0.3); }
+}
+
+.button-text {
+  font-weight: bold;
+  font-size: 1.8rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Unlocked State - MEGA Celebration */
+.mega-confetti-container {
   position: fixed;
   top: 0;
   left: 0;
@@ -927,16 +1078,16 @@ onMounted(() => {
   height: 100%;
   pointer-events: none;
   overflow: hidden;
-  z-index: 1;
+  z-index: 100;
 }
 
 .confetti {
   position: absolute;
   top: -10px;
-  width: 10px;
-  height: 10px;
-  opacity: 0.8;
-  animation: confetti-fall 4s linear infinite;
+  width: 15px;
+  height: 15px;
+  opacity: 0.9;
+  animation: confetti-fall 5s linear infinite;
 }
 
 @keyframes confetti-fall {
@@ -945,13 +1096,80 @@ onMounted(() => {
     opacity: 1;
   }
   100% {
-    transform: translateY(100vh) rotate(720deg);
+    transform: translateY(100vh) rotate(1080deg);
     opacity: 0;
   }
 }
 
-/* Gift Opening Animation */
-.gift-opening-container {
+.fireworks-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 99;
+}
+
+.firework {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffd700;
+  animation: firework-explode 2s ease-out infinite;
+}
+
+@keyframes firework-explode {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 #ffd700, 0 0 0 0 #ff6b6b, 0 0 0 0 #4ecdc4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-200px) scale(0);
+    opacity: 0;
+    box-shadow:
+      0 -50px 60px 30px #ffd700,
+      50px 0 60px 30px #ff6b6b,
+      -50px 0 60px 30px #4ecdc4,
+      0 50px 60px 30px #f093fb;
+  }
+}
+
+.balloons-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 98;
+}
+
+.balloon {
+  position: absolute;
+  bottom: -50px;
+  font-size: 40px;
+  animation: balloon-float 6s ease-in infinite;
+}
+
+@keyframes balloon-float {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-120vh) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.mega-gift-opening {
   position: relative;
   height: 200px;
   display: flex;
@@ -960,98 +1178,86 @@ onMounted(() => {
   margin: 40px 0;
 }
 
-.gift-box-bottom {
+.gift-explosion {
   position: absolute;
-  z-index: 2;
-  animation: box-shake 0.5s ease-in-out;
+  font-size: 150px;
+  animation: explosion 1s ease-out;
+  z-index: 101;
 }
 
-.gift-box-lid {
-  position: absolute;
-  z-index: 3;
-  animation: lid-open 1s ease-out forwards;
-}
-
-.prize-popup {
-  position: absolute;
-  z-index: 1;
-  animation: prize-pop 1.5s ease-out 0.5s forwards;
-  opacity: 0;
-}
-
-@keyframes box-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-10px); }
-  75% { transform: translateX(10px); }
-}
-
-@keyframes lid-open {
+@keyframes explosion {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: scale(0);
     opacity: 1;
   }
   50% {
-    transform: translateY(-100px) rotate(-20deg);
+    transform: scale(2);
     opacity: 0.5;
   }
   100% {
-    transform: translateY(-150px) rotate(-30deg);
+    transform: scale(0);
     opacity: 0;
   }
 }
 
-@keyframes prize-pop {
+.prize-star-burst {
+  animation: prize-burst 2s ease-out forwards;
+}
+
+@keyframes prize-burst {
   0% {
-    transform: translateY(50px) scale(0);
+    transform: scale(0) rotate(0deg);
     opacity: 0;
   }
-  60% {
-    transform: translateY(-30px) scale(1.2);
+  50% {
+    transform: scale(1.3) rotate(180deg);
     opacity: 1;
-  }
-  80% {
-    transform: translateY(-10px) scale(0.9);
   }
   100% {
-    transform: translateY(-20px) scale(1);
+    transform: scale(1) rotate(360deg);
     opacity: 1;
   }
 }
 
-.prize-star {
-  animation: star-rotate 3s linear infinite;
-  filter: drop-shadow(0 0 30px rgba(255, 193, 7, 0.8));
+.trophy-icon {
+  animation: trophy-spin 4s linear infinite;
+  filter: drop-shadow(0 0 50px rgba(255, 215, 0, 1));
 }
 
-@keyframes star-rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes trophy-spin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
 }
 
-.celebration-text {
-  animation: celebration-bounce 1s ease-out;
+.mega-celebration-text {
+  animation: mega-celebration 2s ease-in-out infinite;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
   position: relative;
-  z-index: 2;
+  z-index: 102;
 }
 
-@keyframes celebration-bounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+@keyframes mega-celebration {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+  }
+  50% {
+    transform: scale(1.1) rotate(2deg);
+    text-shadow: 0 0 50px rgba(255, 215, 0, 1);
+  }
 }
 
 .achievement-text {
   position: relative;
-  z-index: 2;
-  color: white;
-  font-weight: 500;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  animation: fade-in-up 1s ease-out 0.5s both;
+  z-index: 102;
+  animation: fade-in-up 1.5s ease-out;
+  text-shadow: 0 3px 15px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes fade-in-up {
   0% {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   100% {
     opacity: 1;
@@ -1059,24 +1265,53 @@ onMounted(() => {
   }
 }
 
-.prize-reveal {
-  animation: reveal 1s ease-out 1.5s both;
+.prize-reveal-card {
+  animation: card-reveal 2s ease-out 1s both;
   position: relative;
-  z-index: 2;
+  z-index: 102;
+  background: rgba(255, 255, 255, 0.98);
 }
 
-@keyframes reveal {
+@keyframes card-reveal {
   0% {
-    transform: scale(0) rotate(-10deg);
+    transform: rotateX(-90deg) scale(0.5);
     opacity: 0;
   }
-  60% {
-    transform: scale(1.1) rotate(5deg);
+  50% {
+    transform: rotateX(10deg) scale(1.05);
   }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: rotateX(0deg) scale(1);
     opacity: 1;
   }
 }
-</style>
 
+.prize-text {
+  background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: prize-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes prize-shimmer {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .mega-number {
+    font-size: 2.5rem;
+  }
+
+  .button-text {
+    font-size: 1.2rem;
+  }
+
+  .mega-unlock-button {
+    padding: 24px 32px !important;
+    min-height: 60px !important;
+  }
+}
+</style>

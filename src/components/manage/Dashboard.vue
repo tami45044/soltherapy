@@ -14,6 +14,17 @@
         </div>
         <div class="d-flex gap-2">
           <v-btn
+            color="primary"
+            variant="elevated"
+            rounded="lg"
+            @click="loadData"
+            :loading="loading"
+            size="large"
+          >
+            <v-icon icon="mdi-refresh" start />
+            רענן נתונים
+          </v-btn>
+          <v-btn
             v-if="isTest"
             color="primary"
             variant="tonal"
@@ -86,7 +97,14 @@
       </v-col>
 
       <v-col cols="12" sm="6" lg="3">
-        <v-card class="stat-card-modern stat-card-fixed-height" rounded="xl" elevation="0" hover>
+        <v-card
+          class="stat-card-modern stat-card-fixed-height clickable-stat-card"
+          rounded="xl"
+          elevation="0"
+          hover
+          @click="showPaymentsDetails('week')"
+          style="cursor: pointer;"
+        >
           <div class="stat-gradient info-gradient"></div>
           <v-card-text class="pa-5 position-relative">
             <div class="d-flex justify-space-between align-center mb-2">
@@ -99,6 +117,7 @@
                 </div>
                 <div class="text-caption text-success font-weight-medium mt-1">
                   שולם: ₪{{ stats.weekPaid.toLocaleString() }}
+                  <v-icon icon="mdi-open-in-new" size="x-small" class="mr-1" />
                 </div>
               </div>
               <v-avatar size="56" color="info" variant="tonal">
@@ -208,29 +227,49 @@
       <!-- Debts Summary -->
       <v-col cols="12" lg="5">
         <v-card rounded="xl" elevation="2" class="section-card-clean">
-          <v-card-title class="pa-5 text-right section-header-clean">
-            <v-icon icon="mdi-alert-circle-outline" size="24" style="opacity: 0.8;" />
-            <span class="text-h6">חובות ללקוחות</span>
+          <v-card-title class="pa-5 text-right section-header-clean d-flex justify-space-between align-center">
+            <div class="d-flex align-center gap-2">
+              <v-icon icon="mdi-alert-circle-outline" size="24" style="opacity: 0.8;" />
+              <span class="text-h6">חובות ללקוחות</span>
+            </div>
+            <v-chip
+              v-if="clientsWithDebts.length > 0"
+              color="error"
+              variant="flat"
+              size="large"
+              class="font-weight-bold"
+            >
+              סה"כ: ₪{{ totalDebts.toLocaleString() }}
+            </v-chip>
           </v-card-title>
 
-          <v-card-text class="pa-0">
-            <v-list v-if="clientsWithDebts.length > 0">
-              <v-list-item
+          <v-card-text class="pa-4">
+            <v-row v-if="clientsWithDebts.length > 0">
+              <v-col
                 v-for="client in clientsWithDebts"
                 :key="client.id"
-                class="px-4 py-2 clickable-debt-item"
-                @click="showBalanceDetails(client)"
+                cols="12"
+                sm="6"
               >
-                <v-list-item-title class="text-right font-weight-medium mb-2">
-                  {{ client.name }}
-                </v-list-item-title>
-                <v-list-item-subtitle class="text-right">
-                  <v-chip size="default" color="error" variant="flat" class="font-weight-bold">
-                    חוב: ₪{{ Math.abs(client.balance) }}
-                  </v-chip>
-                </v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
+                <v-card
+                  rounded="lg"
+                  variant="tonal"
+                  color="error"
+                  class="clickable-debt-item pa-3"
+                  @click="showBalanceDetails(client)"
+                  style="cursor: pointer;"
+                >
+                  <div class="text-right">
+                    <div class="font-weight-bold mb-1">
+                      {{ client.name }}
+                    </div>
+                    <v-chip size="small" color="error" variant="flat" class="font-weight-bold">
+                      חוב: ₪{{ Math.abs(client.balance) }}
+                    </v-chip>
+                  </div>
+                </v-card>
+              </v-col>
+            </v-row>
 
             <div v-else class="pa-6 text-center">
               <v-icon icon="mdi-check-circle" size="48" color="success" class="mb-2" />
@@ -298,21 +337,33 @@
           <v-card-text class="pa-6">
             <v-row>
               <v-col cols="12" md="4">
-                <div class="stat-box-modern">
+                <div
+                  class="stat-box-modern clickable-stat-card"
+                  @click="showMonthlyAppointments"
+                  style="cursor: pointer;"
+                >
                   <v-icon icon="mdi-calendar-check" size="40" color="primary" class="mb-3" />
                   <div class="stat-label-modern">פגישות החודש</div>
-                  <div class="stat-value-modern">{{ stats.monthAppointments }}</div>
+                  <div class="stat-value-modern">
+                    {{ stats.monthAppointments }}
+                    <v-icon icon="mdi-open-in-new" size="small" class="mr-1" />
+                  </div>
                 </div>
               </v-col>
 
               <v-col cols="12" md="4">
-                <div class="stat-box-modern">
+                <div
+                  class="stat-box-modern clickable-stat-card"
+                  @click="showPaymentsDetails('month')"
+                  style="cursor: pointer;"
+                >
                   <v-icon icon="mdi-cash-check" size="40" color="success" class="mb-3" />
                   <div class="stat-label-modern">הכנסות החודש</div>
                   <div class="stat-value-modern" style="color: #4CAF50;">₪{{ stats.monthActual.toLocaleString() }}</div>
                   <div class="stat-sublabel-modern">מתוך ₪{{ stats.monthExpected.toLocaleString() }} צפוי</div>
                   <div class="stat-sublabel-modern" style="color: #2E7D32; font-weight: 600; margin-top: 4px;">
                     שולם בפועל: ₪{{ stats.monthPaid.toLocaleString() }}
+                    <v-icon icon="mdi-open-in-new" size="x-small" class="mr-1" />
                   </div>
                 </div>
               </v-col>
@@ -438,11 +489,200 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Payments Details Dialog -->
+    <v-dialog v-model="showPaymentsDialog" max-width="900" @click:outside="closePaymentsDialog">
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right section-header-clean">
+          <v-icon icon="mdi-cash-multiple" size="24" style="opacity: 0.8;" />
+          <span class="text-h6">פירוט תשלומים - {{ paymentsType === 'week' ? 'השבוע' : 'החודש' }}</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <v-progress-linear v-if="loadingPayments" indeterminate color="primary" class="mb-4" />
+
+          <div v-else>
+            <div v-if="paymentsList.length > 0" class="mb-4">
+              <div class="d-flex justify-space-between mb-3 pa-3 bg-grey-lighten-4 rounded">
+                <div>
+                  <strong>סה"כ תשלומים:</strong> {{ paymentsList.length }}
+                </div>
+                <div>
+                  <strong>סה"כ סכום:</strong> ₪{{ paymentsList.reduce((sum, p) => sum + p.amount, 0).toLocaleString() }}
+                </div>
+              </div>
+
+              <v-list>
+                <v-list-item
+                  v-for="(payment, idx) in paymentsList"
+                  :key="idx"
+                  class="mb-2 pa-3 rounded payment-item"
+                >
+                  <template #prepend>
+                    <v-avatar :color="payment.isGroup ? 'purple' : 'primary'" size="40">
+                      <v-icon :icon="payment.isGroup ? 'mdi-account-group' : 'mdi-account'" />
+                    </v-avatar>
+                  </template>
+
+                  <v-list-item-title class="font-weight-bold mb-1">
+                    {{ payment.clientName }}
+                    <v-chip v-if="payment.isGroup" size="x-small" color="purple" variant="tonal" class="mr-2">
+                      קבוצה
+                    </v-chip>
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle class="d-flex flex-wrap gap-2 mt-2">
+                    <v-chip size="small" color="primary" variant="flat">
+                      <v-icon icon="mdi-calendar" size="small" start />
+                      {{ new Intl.DateTimeFormat('he-IL').format(payment.date) }}
+                    </v-chip>
+                    <v-chip size="small" color="secondary" variant="flat">
+                      <v-icon icon="mdi-clock-outline" size="small" start />
+                      {{ payment.time }}
+                    </v-chip>
+                    <v-chip size="small" :color="getPaymentMethodColor(payment.method)" variant="flat">
+                      <v-icon :icon="getPaymentMethodIcon(payment.method)" size="small" start />
+                      {{ getPaymentMethodLabel(payment.method) }}
+                    </v-chip>
+                    <v-chip v-if="payment.notes" size="small" color="grey" variant="tonal">
+                      <v-icon icon="mdi-note-text" size="small" start />
+                      {{ payment.notes }}
+                    </v-chip>
+                  </v-list-item-subtitle>
+
+                  <template #append>
+                    <div class="text-h6 font-weight-bold text-success">
+                      ₪{{ payment.amount.toLocaleString() }}
+                    </div>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </div>
+
+            <v-alert
+              v-else
+              type="info"
+              variant="tonal"
+            >
+              אין תשלומים {{ paymentsType === 'week' ? 'השבוע' : 'החודש' }}
+            </v-alert>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer />
+          <v-btn
+            variant="outlined"
+            rounded="xl"
+            size="large"
+            @click="closePaymentsDialog"
+            class="px-6"
+          >
+            סגור
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Monthly Appointments Dialog -->
+    <v-dialog v-model="showMonthlyAppointmentsDialog" max-width="900" @click:outside="closeMonthlyAppointmentsDialog">
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right section-header-clean">
+          <v-icon icon="mdi-calendar-month" size="24" style="opacity: 0.8;" />
+          <span class="text-h6">פגישות החודש</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <div v-if="monthlyAppointmentsList.length > 0">
+            <div class="d-flex justify-space-between mb-3 pa-3 bg-grey-lighten-4 rounded">
+              <div>
+                <strong>סה"כ פגישות:</strong> {{ monthlyAppointmentsList.length }}
+              </div>
+              <div>
+                <strong>הגיעו:</strong> {{ monthlyAppointmentsList.filter(a => a.attended || (a.isGroup && a.groupParticipants?.some(p => p.attended))).length }}
+              </div>
+            </div>
+
+            <v-list>
+              <v-list-item
+                v-for="apt in monthlyAppointmentsList"
+                :key="apt.id"
+                class="mb-2 pa-3 rounded payment-item"
+              >
+                <template #prepend>
+                  <v-avatar :color="apt.isGroup ? 'purple' : (apt.attended ? 'success' : 'grey')" size="40">
+                    <v-icon :icon="apt.isGroup ? 'mdi-account-group' : 'mdi-account'" />
+                  </v-avatar>
+                </template>
+
+                <v-list-item-title class="font-weight-bold mb-1">
+                  {{ apt.clientName }}
+                  <v-chip v-if="apt.isGroup" size="x-small" color="purple" variant="tonal" class="mr-2">
+                    קבוצה ({{ apt.groupParticipants?.length || 0 }})
+                  </v-chip>
+                </v-list-item-title>
+
+                <v-list-item-subtitle class="d-flex flex-wrap gap-2 mt-2">
+                  <v-chip size="small" color="primary" variant="flat">
+                    <v-icon icon="mdi-calendar" size="small" start />
+                    {{ new Intl.DateTimeFormat('he-IL').format(apt.date) }}
+                  </v-chip>
+                  <v-chip size="small" color="secondary" variant="flat">
+                    <v-icon icon="mdi-clock-outline" size="small" start />
+                    {{ apt.time }}
+                  </v-chip>
+                  <v-chip
+                    v-if="apt.attended || (apt.isGroup && apt.groupParticipants?.some(p => p.attended))"
+                    size="small"
+                    color="success"
+                    variant="flat"
+                  >
+                    <v-icon icon="mdi-check-circle" size="small" start />
+                    הגיע
+                  </v-chip>
+                  <v-chip v-else size="small" color="grey" variant="flat">
+                    <v-icon icon="mdi-clock-outline" size="small" start />
+                    מתוכנן
+                  </v-chip>
+                </v-list-item-subtitle>
+
+                <template #append>
+                  <div class="text-h6 font-weight-bold" :class="apt.attended ? 'text-success' : 'text-grey'">
+                    ₪{{ apt.price.toLocaleString() }}
+                  </div>
+                </template>
+              </v-list-item>
+            </v-list>
+          </div>
+
+          <v-alert
+            v-else
+            type="info"
+            variant="tonal"
+          >
+            אין פגישות החודש
+          </v-alert>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer />
+          <v-btn
+            variant="outlined"
+            rounded="xl"
+            size="large"
+            @click="closeMonthlyAppointmentsDialog"
+            class="px-6"
+          >
+            סגור
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue'
 import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import type { Client, Appointment, PaymentRecord } from '@/types/manage'
@@ -460,6 +700,11 @@ const loading = ref(true)
 const showBalanceDialog = ref(false)
 const loadingBalanceDetails = ref(false)
 const selectedClientForBalance = ref<Client | null>(null)
+const showPaymentsDialog = ref(false)
+const loadingPayments = ref(false)
+const paymentsType = ref<'week' | 'month'>('week')
+const showMonthlyAppointmentsDialog = ref(false)
+const monthlyAppointmentsList = ref<Appointment[]>([])
 const backingUp = ref(false)
 const copyingData = ref(false)
 const importingData = ref(false)
@@ -487,6 +732,16 @@ const balanceDetails = ref({
     attended: boolean
   }>
 })
+
+const paymentsList = ref<Array<{
+  clientName: string
+  date: Date
+  time: string
+  amount: number
+  method: string
+  notes: string
+  isGroup: boolean
+}>>([])
 
 // Computed
 const stats = computed(() => {
@@ -605,8 +860,12 @@ const todayAppointments = computed(() => {
 const clientsWithDebts = computed(() => {
   return clients.value
     .filter(c => c.balance < 0)
-    .sort((a, b) => a.balance - b.balance)
-    .slice(0, 5)
+    .sort((a, b) => a.balance - b.balance) // Sort by debt (largest first)
+    // No slice - show all clients with debts
+})
+
+const totalDebts = computed(() => {
+  return clientsWithDebts.value.reduce((sum, client) => sum + Math.abs(client.balance), 0)
 })
 
 // Helper Functions
@@ -866,6 +1125,128 @@ const showBalanceDetails = async (client: Client) => {
   }
 }
 
+const showPaymentsDetails = async (type: 'week' | 'month') => {
+  paymentsType.value = type
+  showPaymentsDialog.value = true
+  loadingPayments.value = true
+
+  try {
+    const now = new Date()
+    const weekStart = getWeekStart(now)
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const filterDate = type === 'week' ? weekStart : monthStart
+
+    const paymentsData: Array<{
+      clientName: string
+      date: Date
+      time: string
+      amount: number
+      method: string
+      notes: string
+      isGroup: boolean
+    }> = []
+
+    // Get relevant appointments
+    const relevantAppointments = appointments.value.filter(a => a.date >= filterDate)
+
+    relevantAppointments.forEach(apt => {
+      // Regular appointments
+      if (!apt.isGroup && apt.payments && Array.isArray(apt.payments)) {
+        apt.payments.forEach((payment: any) => {
+          paymentsData.push({
+            clientName: apt.clientName,
+            date: apt.date,
+            time: apt.time,
+            amount: payment.amount || 0,
+            method: payment.method || 'cash',
+            notes: payment.notes || '',
+            isGroup: false
+          })
+        })
+      }
+
+      // Group appointments
+      if (apt.isGroup && apt.groupParticipants && Array.isArray(apt.groupParticipants)) {
+        apt.groupParticipants.forEach((p: any) => {
+          if (p.payments && Array.isArray(p.payments)) {
+            p.payments.forEach((payment: any) => {
+              paymentsData.push({
+                clientName: p.clientName,
+                date: apt.date,
+                time: apt.time,
+                amount: payment.amount || 0,
+                method: payment.method || 'cash',
+                notes: payment.notes || '',
+                isGroup: true
+              })
+            })
+          }
+        })
+      }
+    })
+
+    // Sort by date descending
+    paymentsData.sort((a, b) => b.date.getTime() - a.date.getTime())
+
+    paymentsList.value = paymentsData
+  } catch (error) {
+    console.error('Error loading payments:', error)
+  } finally {
+    loadingPayments.value = false
+  }
+}
+
+const closePaymentsDialog = () => {
+  showPaymentsDialog.value = false
+  paymentsList.value = []
+}
+
+const showMonthlyAppointments = () => {
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  monthlyAppointmentsList.value = appointments.value
+    .filter(a => a.date >= monthStart)
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+
+  showMonthlyAppointmentsDialog.value = true
+}
+
+const closeMonthlyAppointmentsDialog = () => {
+  showMonthlyAppointmentsDialog.value = false
+  monthlyAppointmentsList.value = []
+}
+
+const getPaymentMethodLabel = (method: string): string => {
+  const labels: Record<string, string> = {
+    cash: 'מזומן',
+    transfer: 'העברה',
+    credit: 'אשראי',
+    check: 'צ\'ק'
+  }
+  return labels[method] || method
+}
+
+const getPaymentMethodIcon = (method: string): string => {
+  const icons: Record<string, string> = {
+    cash: 'mdi-cash',
+    transfer: 'mdi-bank-transfer',
+    credit: 'mdi-credit-card',
+    check: 'mdi-checkbook'
+  }
+  return icons[method] || 'mdi-cash'
+}
+
+const getPaymentMethodColor = (method: string): string => {
+  const colors: Record<string, string> = {
+    cash: 'success',
+    transfer: 'info',
+    credit: 'warning',
+    check: 'secondary'
+  }
+  return colors[method] || 'grey'
+}
+
 const closeBalanceDialog = () => {
   showBalanceDialog.value = false
   selectedClientForBalance.value = null
@@ -880,6 +1261,37 @@ const closeBalanceDialog = () => {
 // Lifecycle
 onMounted(() => {
   loadData()
+
+  // Start auto-refresh every 10 seconds
+  if (refreshInterval) clearInterval(refreshInterval)
+  refreshInterval = setInterval(() => {
+    console.log('🔄 Auto-refreshing dashboard...')
+    loadData()
+  }, 10000) // 10 seconds
+})
+
+// Reload data when returning to Dashboard tab
+// Auto-refresh interval
+let refreshInterval: any = null
+
+onActivated(() => {
+  console.log('Dashboard activated, reloading data...')
+  loadData()
+
+  // Start auto-refresh every 10 seconds
+  if (refreshInterval) clearInterval(refreshInterval)
+  refreshInterval = setInterval(() => {
+    console.log('🔄 Auto-refreshing dashboard...')
+    loadData()
+  }, 10000) // 10 seconds
+})
+
+onUnmounted(() => {
+  // Clean up interval when component is unmounted
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
 })
 </script>
 
@@ -1056,8 +1468,22 @@ onMounted(() => {
 }
 
 .clickable-debt-item:hover {
-  background: rgba(25, 118, 210, 0.08);
-  box-shadow: inset 3px 0 0 0 rgba(25, 118, 210, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.clickable-stat-card {
+  transition: all 0.2s ease;
+}
+
+.clickable-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.payment-item {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fafafa;
 }
 
 .appointments-list .appointment-item {

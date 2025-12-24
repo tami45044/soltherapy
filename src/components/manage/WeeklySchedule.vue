@@ -67,12 +67,34 @@
       </v-col>
     </v-row>
 
-    <!-- Admin Tools - DISABLED TEMPORARILY -->
-    <v-row v-if="false" class="mb-4">
+    <!-- Admin Tools - Recalculate Balances -->
+    <v-row class="mb-4">
       <v-col cols="12">
-        <v-alert type="error" variant="tonal" rounded="lg">
-          <strong>⚠️ כלי המנהל הושבתו זמנית</strong>
-        </v-alert>
+        <v-card rounded="xl" variant="tonal" color="warning">
+          <v-card-text class="d-flex align-center justify-space-between">
+            <div>
+              <strong>🔧 כלי תיקון:</strong> חישוב מחדש של חובות כל הלקוחות על בסיס פגישות בפועל
+            </div>
+            <v-btn
+              color="warning"
+              rounded="xl"
+              variant="elevated"
+              @click="recalculateAllClientBalances"
+            >
+              <v-icon icon="mdi-calculator" />
+              חשב מחדש חובות
+            </v-btn>
+            <v-btn
+              color="error"
+              rounded="xl"
+              variant="elevated"
+              @click="fixZeroPriceAppointments"
+            >
+              <v-icon icon="mdi-wrench" />
+              תקן מחירים 0
+            </v-btn>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
 
@@ -944,59 +966,39 @@
             משתתפים ({{ groupParticipants.length }})
           </h4>
 
-          <v-list>
-            <v-list-item
+          <div>
+            <v-card
               v-for="(participant, idx) in groupParticipants"
               :key="participant.clientId"
-              class="mb-2 pa-3"
+              class="mb-3 pa-4"
               rounded="lg"
+              variant="outlined"
               :style="{
-                border: '1px solid #e0e0e0',
+                border: '2px solid #e0e0e0',
                 background: participant.attended ? 'rgba(76, 175, 80, 0.05)' : 'white'
               }"
             >
-              <template #prepend>
-                <v-avatar :color="participant.isRegular ? 'primary' : 'grey'" size="40">
-                  <v-icon :icon="participant.isRegular ? 'mdi-account-star' : 'mdi-account'" />
-                </v-avatar>
-              </template>
-
-              <v-list-item-title class="font-weight-bold">
-                {{ participant.clientName }}
-                <v-chip
-                  v-if="participant.isRegular"
-                  size="x-small"
-                  color="primary"
-                  variant="tonal"
-                  class="mr-2"
-                >
-                  קבוע
-                </v-chip>
-              </v-list-item-title>
-
-              <v-list-item-subtitle>
-                <div class="d-flex gap-2 mt-2">
-                  <v-chip
-                    size="small"
-                    :color="participant.attended ? 'success' : 'grey'"
-                    @click="toggleParticipantAttendance(idx)"
-                    style="cursor: pointer;"
-                  >
-                    <v-icon :icon="participant.attended ? 'mdi-check-circle' : 'mdi-circle-outline'" size="small" start />
-                    {{ participant.attended ? 'הגיע' : 'לא הגיע' }}
-                  </v-chip>
-
-                  <v-chip
-                    v-if="participant.attended"
-                    size="small"
-                    :color="getParticipantPaymentColor(participant)"
-                  >
-                    {{ getParticipantPaymentText(participant) }}
-                  </v-chip>
+              <!-- Header -->
+              <div class="d-flex align-center justify-space-between mb-3">
+                <div class="d-flex align-center gap-3">
+                  <v-avatar :color="participant.isRegular ? 'primary' : 'grey'" size="40">
+                    <v-icon :icon="participant.isRegular ? 'mdi-account-star' : 'mdi-account'" />
+                  </v-avatar>
+                  <div>
+                    <div class="font-weight-bold text-h6">
+                      {{ participant.clientName }}
+                      <v-chip
+                        v-if="participant.isRegular"
+                        size="x-small"
+                        color="primary"
+                        variant="tonal"
+                        class="mr-2"
+                      >
+                        קבוע
+                      </v-chip>
+                    </div>
+                  </div>
                 </div>
-              </v-list-item-subtitle>
-
-              <template #append>
                 <div class="d-flex flex-column gap-2">
                   <v-btn
                     v-if="participant.attended"
@@ -1006,7 +1008,7 @@
                     @click="openParticipantPayment(idx)"
                   >
                     <v-icon icon="mdi-cash-plus" size="small" />
-                    תשלום
+                    הוסף תשלום
                   </v-btn>
                   <v-btn
                     v-if="!participant.isRegular"
@@ -1017,9 +1019,74 @@
                     @click="removeParticipant(idx)"
                   />
                 </div>
-              </template>
-            </v-list-item>
-          </v-list>
+              </div>
+
+              <!-- Status Chips -->
+              <div class="d-flex gap-2 mb-3">
+                <v-chip
+                  size="small"
+                  :color="participant.attended ? 'success' : 'grey'"
+                  @click="toggleParticipantAttendance(idx)"
+                  style="cursor: pointer;"
+                >
+                  <v-icon :icon="participant.attended ? 'mdi-check-circle' : 'mdi-circle-outline'" size="small" start />
+                  {{ participant.attended ? 'הגיע' : 'לא הגיע' }}
+                </v-chip>
+
+                <v-chip
+                  v-if="participant.attended"
+                  size="small"
+                  :color="getParticipantPaymentColor(participant)"
+                >
+                  {{ getParticipantPaymentText(participant) }}
+                </v-chip>
+              </div>
+
+              <!-- Payments List -->
+              <div v-if="participant.attended && participant.payments && participant.payments.length > 0" class="mt-3" style="background: #f9f9f9; padding: 12px; border-radius: 8px;">
+                <div class="text-caption font-weight-bold mb-2" style="color: #2E7D32;">
+                  תשלומים:
+                </div>
+                <v-card
+                    v-for="(payment, payIdx) in participant.payments"
+                    :key="payment.id"
+                    variant="outlined"
+                    class="mb-2 pa-3"
+                    rounded="lg"
+                    style="border: 2px solid #4CAF50;"
+                  >
+                    <div class="d-flex align-center justify-space-between">
+                      <div class="d-flex align-center gap-2">
+                        <v-icon :icon="getPaymentMethodIcon(payment.method)" color="success" size="small" />
+                        <div>
+                          <div class="font-weight-bold text-success">₪{{ payment.amount }}</div>
+                          <div class="text-caption text-medium-emphasis">{{ getPaymentMethodLabel(payment.method) }}</div>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-1">
+                        <v-btn
+                          size="x-small"
+                          color="primary"
+                          variant="text"
+                          icon="mdi-pencil"
+                          @click="editParticipantPayment(idx, payIdx)"
+                        />
+                        <v-btn
+                          size="x-small"
+                          color="error"
+                          variant="text"
+                          icon="mdi-delete"
+                          @click="removeParticipantPayment(idx, payIdx)"
+                        />
+                      </div>
+                    </div>
+                    <div v-if="payment.notes" class="text-caption text-medium-emphasis mt-1">
+                      {{ payment.notes }}
+                    </div>
+                  </v-card>
+              </div>
+            </v-card>
+          </div>
 
           <!-- Summary -->
           <v-card variant="tonal" color="primary" class="mt-4" rounded="lg">
@@ -1128,7 +1195,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where, orderBy as firestoreOrderBy } from 'firebase/firestore'
-import { db } from '@/firebase'
+import { db, auth } from '@/firebase'
 import type { Client, Appointment, ScheduleSlot } from '@/types/manage'
 
 // State
@@ -1136,6 +1203,7 @@ const clients = ref<Client[]>([])
 const appointments = ref<Appointment[]>([])
 const templateSlots = ref<ScheduleSlot[]>([])
 const currentWeekStart = ref(getWeekStart(new Date()))
+const currentUser = computed(() => auth.currentUser)
 const showTemplateDialog = ref(false)
 const showAppointmentDetailsDialog = ref(false)
 const showAddAppointmentDialog = ref(false)
@@ -2350,6 +2418,131 @@ const updateWeeklyTargetFromAppointments = async () => {
   }
 }
 
+const recalculateAllClientBalances = async () => {
+  if (!confirm('🔄 לחשב מחדש את כל החובות?\n\nזה יחשב מחדש את החוב של כל לקוח על בסיס הפגישות בפועל.\n\nהאם להמשיך?')) {
+    return
+  }
+
+  try {
+    console.log('🔄 מתחיל חישוב מחדש של חובות...')
+
+    // Get all appointments
+    const allAppointmentsQuery = query(collection(db, 'appointments'))
+    const allAppointmentsSnap = await getDocs(allAppointmentsQuery)
+
+    // Calculate balance for each client
+    const clientBalances: Record<string, { balance: number, sessions: number }> = {}
+
+    allAppointmentsSnap.forEach(docSnap => {
+      const apt = docSnap.data()
+
+      // Regular appointment
+      if (apt.clientId && apt.clientId !== 'group' && apt.attended) {
+        if (!clientBalances[apt.clientId]) {
+          clientBalances[apt.clientId] = { balance: 0, sessions: 0 }
+        }
+
+        const paid = apt.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
+        const price = apt.price || 0
+        clientBalances[apt.clientId].balance += (paid - price)
+        clientBalances[apt.clientId].sessions += 1
+      }
+
+      // Group appointment participants
+      if (apt.isGroup && apt.groupParticipants && Array.isArray(apt.groupParticipants)) {
+        apt.groupParticipants.forEach((p: any) => {
+          if (p.attended) {
+            if (!clientBalances[p.clientId]) {
+              clientBalances[p.clientId] = { balance: 0, sessions: 0 }
+            }
+
+            const paid = p.payments?.reduce((sum: number, pay: any) => sum + (pay.amount || 0), 0) || 0
+            const price = apt.groupPrice || 0
+            clientBalances[p.clientId].balance += (paid - price)
+            clientBalances[p.clientId].sessions += 1
+          }
+        })
+      }
+    })
+
+    // Update all clients
+    const updatePromises = Object.entries(clientBalances).map(([clientId, data]) => {
+      console.log(`  ✅ ${clientId}: balance=${data.balance}, sessions=${data.sessions}`)
+      return updateDoc(doc(db, 'clients', clientId), {
+        balance: data.balance,
+        totalSessions: data.sessions
+      })
+    })
+
+    // Also reset clients with no appointments to 0
+    const clientsWithNoAppointments = clients.value.filter(c => !clientBalances[c.id])
+    clientsWithNoAppointments.forEach(c => {
+      if (c.balance !== 0 || c.totalSessions !== 0) {
+        console.log(`  🔄 ${c.name}: resetting to 0`)
+        updatePromises.push(updateDoc(doc(db, 'clients', c.id), {
+          balance: 0,
+          totalSessions: 0
+        }))
+      }
+    })
+
+    await Promise.all(updatePromises)
+    await loadClients()
+
+    showSnackbar(`✅ חושב מחדש! עודכנו ${Object.keys(clientBalances).length} לקוחות`, 'success')
+    console.log('✅ חישוב מחדש הושלם!')
+  } catch (error) {
+    console.error('❌ שגיאה בחישוב מחדש:', error)
+    showSnackbar('שגיאה בחישוב מחדש', 'error')
+  }
+}
+
+const fixZeroPriceAppointments = async () => {
+  if (!confirm('🔧 לתקן פגישות עם מחיר 0?\n\nזה יעדכן את כל הפגישות עם מחיר 0 למחיר ברירת המחדל של הלקוח (או 400 ₪).\n\nהאם להמשיך?')) {
+    return
+  }
+
+  try {
+    console.log('🔧 מתחיל תיקון פגישות עם מחיר 0...')
+
+    // Get all appointments with price = 0
+    const allAppointmentsQuery = query(
+      collection(db, 'appointments'),
+      where('price', '==', 0)
+    )
+    const allAppointmentsSnap = await getDocs(allAppointmentsQuery)
+
+    console.log(`📋 נמצאו ${allAppointmentsSnap.size} פגישות עם מחיר 0`)
+
+    let fixedCount = 0
+    const updatePromises: Promise<any>[] = []
+
+    allAppointmentsSnap.forEach(docSnap => {
+      const apt = docSnap.data()
+      const client = clients.value.find(c => c.id === apt.clientId)
+      const correctPrice = client?.defaultPrice || 400
+
+      console.log(`  🔧 ${apt.clientName}: 0 → ${correctPrice}`)
+
+      updatePromises.push(
+        updateDoc(doc(db, 'appointments', docSnap.id), {
+          price: correctPrice
+        })
+      )
+      fixedCount++
+    })
+
+    await Promise.all(updatePromises)
+    await loadAppointments()
+
+    showSnackbar(`✅ תוקנו ${fixedCount} פגישות!`, 'success')
+    console.log('✅ תיקון הושלם!')
+  } catch (error) {
+    console.error('❌ שגיאה בתיקון:', error)
+    showSnackbar('שגיאה בתיקון פגישות', 'error')
+  }
+}
+
 const openAppointmentDialog = (date: Date, time: string) => {
   const existing = getAppointment(date, time)
 
@@ -2362,11 +2555,16 @@ const openAppointmentDialog = (date: Date, time: string) => {
   if (existing) {
     selectedAppointment.value = existing
     const aptDate = existing.date instanceof Date ? existing.date : new Date(existing.date)
+
+    // Get client to use defaultPrice if price is missing
+    const client = clients.value.find(c => c.id === existing.clientId)
+    const priceToUse = existing.price || client?.defaultPrice || 400
+
     appointmentForm.value = {
       clientId: existing.clientId,
       date: dateToInputString(aptDate),
       time: existing.time,
-      price: existing.price,
+      price: priceToUse,
       attended: existing.attended,
       paid: existing.paid,
       notes: existing.notes || '',
@@ -2474,13 +2672,30 @@ const openGroupDialog = (appointment: Appointment) => {
     clientId: p.clientId,
     clientName: p.clientName,
     attended: p.attended,
-    payments: p.payments.map(payment => ({
-      id: payment.id,
-      amount: payment.amount,
-      method: payment.method,
-      date: payment.date instanceof Date ? payment.date : new Date(payment.date),
-      notes: payment.notes || ''
-    })),
+    payments: (p.payments || []).map(payment => {
+      let paymentDate: Date
+      if (payment.date instanceof Date) {
+        paymentDate = payment.date
+      } else if (payment.date?.toDate && typeof payment.date.toDate === 'function') {
+        // Firebase Timestamp
+        paymentDate = payment.date.toDate()
+      } else if (payment.date) {
+        // Try to parse as string
+        const parsed = new Date(payment.date)
+        paymentDate = isNaN(parsed.getTime()) ? new Date() : parsed
+      } else {
+        // Fallback to current date
+        paymentDate = new Date()
+      }
+
+      return {
+        id: payment.id || `payment_${Date.now()}_${Math.random()}`,
+        amount: payment.amount || 0,
+        method: payment.method || 'cash',
+        date: paymentDate,
+        notes: payment.notes || ''
+      }
+    }),
     isRegular: p.isRegular
   }))
 
@@ -2583,13 +2798,57 @@ const addParticipantPayment = () => {
   closeParticipantPaymentDialog()
 }
 
+const editParticipantPayment = (participantIndex: number, paymentIndex: number) => {
+  const payment = groupParticipants.value[participantIndex].payments[paymentIndex]
+
+  selectedParticipantIndex.value = participantIndex
+  participantPaymentForm.value = {
+    amount: payment.amount,
+    method: payment.method,
+    notes: payment.notes || ''
+  }
+
+  // Remove the old payment - we'll add the edited one when saving
+  groupParticipants.value[participantIndex].payments.splice(paymentIndex, 1)
+
+  showParticipantPaymentDialog.value = true
+}
+
+const removeParticipantPayment = (participantIndex: number, paymentIndex: number) => {
+  const payment = groupParticipants.value[participantIndex].payments[paymentIndex]
+  if (!confirm(`האם למחוק תשלום של ₪${payment.amount}?`)) return
+
+  groupParticipants.value[participantIndex].payments.splice(paymentIndex, 1)
+  showSnackbar('התשלום נמחק - לחץ "שמור" כדי לשמור את השינויים', 'warning')
+}
+
+const getPaymentMethodIcon = (method: string): string => {
+  const icons: Record<string, string> = {
+    cash: 'mdi-cash',
+    transfer: 'mdi-bank-transfer',
+    credit: 'mdi-credit-card',
+    check: 'mdi-checkbook'
+  }
+  return icons[method] || 'mdi-cash'
+}
+
+const getPaymentMethodLabel = (method: string): string => {
+  const labels: Record<string, string> = {
+    cash: 'מזומן',
+    transfer: 'העברה',
+    credit: 'אשראי',
+    check: 'צ\'ק'
+  }
+  return labels[method] || method
+}
+
 const saveGroupSession = async () => {
   if (!selectedAppointment.value) return
 
   savingAppointment.value = true
   try {
     const appointmentRef = doc(db, 'appointments', selectedAppointment.value.id)
-    
+
     // Get old appointment data to compare
     const oldAppointmentSnap = await getDoc(appointmentRef)
     const oldAppointment = oldAppointmentSnap.data()
@@ -2599,13 +2858,21 @@ const saveGroupSession = async () => {
     const attendedParticipants = groupParticipants.value.filter(p => p.attended)
     const totalExpectedIncome = attendedParticipants.length * groupForm.value.groupPrice
 
-    // Update appointment
+    // Update appointment - ensure all dates are valid
     await updateDoc(appointmentRef, {
       groupParticipants: groupParticipants.value.map(p => ({
         clientId: p.clientId,
         clientName: p.clientName,
         attended: p.attended,
-        payments: p.payments,
+        payments: p.payments.map(payment => ({
+          id: payment.id,
+          amount: payment.amount,
+          method: payment.method,
+          date: payment.date instanceof Date && !isNaN(payment.date.getTime())
+            ? payment.date
+            : new Date(),
+          notes: payment.notes || ''
+        })),
         isRegular: p.isRegular
       })),
       price: totalExpectedIncome,
@@ -2693,16 +2960,6 @@ const cancelAddPayment = () => {
     method: 'cash',
     notes: ''
   }
-}
-
-const getPaymentMethodLabel = (method: string): string => {
-  const labels: Record<string, string> = {
-    cash: 'מזומן',
-    transfer: 'העברה',
-    credit: 'אשראי',
-    check: 'צ\'ק'
-  }
-  return labels[method] || method
 }
 
 const getPaymentMethodColorPastel = (method: string): string => {
@@ -2855,26 +3112,56 @@ const saveAppointment = async () => {
       showSnackbar('הפגישה נוספה בהצלחה', 'success')
     }
 
-    // Update client balance and session count (only if attended)
+    // Update client balance and session count
     const updateData: any = {}
 
-    // Only update balance if client attended
-    if (appointmentForm.value.attended) {
-      const balanceChange = totalPaid.value - appointmentForm.value.price
-      updateData.balance = client.balance + balanceChange
-    } else if (selectedAppointment.value?.attended && !appointmentForm.value.attended) {
-      // Client was marked as attended before but now not - reverse the balance
-      const previousPaid = selectedAppointment.value.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
-      const balanceChange = previousPaid - selectedAppointment.value.price
-      updateData.balance = client.balance - balanceChange
-    }
+    const wasAttended = selectedAppointment.value?.attended || false
+    const isNowAttended = appointmentForm.value.attended
 
-    // Update totalSessions only when marking as attended for the first time
-    if (appointmentForm.value.attended && !selectedAppointment.value?.attended) {
+    // Calculate old and new balance changes
+    const oldPaid = selectedAppointment.value?.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+    const oldPrice = selectedAppointment.value?.price || 0
+    const oldBalanceChange = wasAttended ? (oldPaid - oldPrice) : 0
+
+    const newPaid = totalPaid.value
+    const newPrice = appointmentForm.value.price
+    const newBalanceChange = isNowAttended ? (newPaid - newPrice) : 0
+
+    console.log('💰 Balance Update Debug:', {
+      clientName: client.name,
+      currentBalance: client.balance,
+      wasAttended,
+      isNowAttended,
+      oldPaid,
+      oldPrice,
+      oldBalanceChange,
+      newPaid,
+      newPrice,
+      newBalanceChange
+    })
+
+    // Case 1: Just marked as attended (first time)
+    if (!wasAttended && isNowAttended) {
+      updateData.balance = client.balance + newBalanceChange
       updateData.totalSessions = client.totalSessions + 1
-    } else if (selectedAppointment.value?.attended && !appointmentForm.value.attended) {
-      // Was attended before but now not - decrease session count
+      console.log('✅ Case 1: New attendance → balance =', updateData.balance)
+    }
+    // Case 2: Was attended but now unmarked
+    else if (wasAttended && !isNowAttended) {
+      updateData.balance = client.balance - oldBalanceChange
       updateData.totalSessions = Math.max(0, client.totalSessions - 1)
+      console.log('✅ Case 2: Unmarked → balance =', updateData.balance)
+    }
+    // Case 3: Still attended - update balance if payment or price changed
+    else if (wasAttended && isNowAttended) {
+      const balanceDifference = newBalanceChange - oldBalanceChange
+      console.log('🔄 Case 3: Still attended → difference =', balanceDifference)
+      if (balanceDifference !== 0) {
+        updateData.balance = client.balance + balanceDifference
+        console.log('✅ Case 3: Updating balance to', updateData.balance)
+      } else {
+        console.log('⏭️ Case 3: No change needed')
+      }
     }
 
     if (Object.keys(updateData).length > 0) {

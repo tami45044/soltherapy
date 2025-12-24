@@ -12,6 +12,16 @@
             {{ formatDate(new Date()) }}
           </p>
         </div>
+        <v-btn
+          color="success"
+          variant="tonal"
+          rounded="lg"
+          @click="createBackup"
+          :loading="backingUp"
+        >
+          <v-icon icon="mdi-database-export" start />
+          גיבוי נתונים
+        </v-btn>
       </v-col>
     </v-row>
 
@@ -412,6 +422,7 @@ import { ref, computed, onMounted } from 'vue'
 import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import type { Client, Appointment, PaymentRecord } from '@/types/manage'
+import { backupFirestore } from '@/utils/backup'
 
 // Emit
 const emit = defineEmits(['navigate'])
@@ -423,6 +434,7 @@ const loading = ref(true)
 const showBalanceDialog = ref(false)
 const loadingBalanceDetails = ref(false)
 const selectedClientForBalance = ref<Client | null>(null)
+const backingUp = ref(false)
 
 const balanceDetails = ref({
   totalOwed: 0,
@@ -625,6 +637,23 @@ const loadData = async () => {
     console.error('Error loading data:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const createBackup = async () => {
+  if (!confirm('🔒 האם את רוצה ליצור גיבוי של כל הנתונים?\n\nהקבצים יורדו למחשב שלך.')) {
+    return
+  }
+  
+  backingUp.value = true
+  try {
+    await backupFirestore()
+    alert('✅ הגיבוי הושלם בהצלחה!\n\nהקבצים ירדו לתיקיית Downloads שלך.')
+  } catch (error) {
+    console.error('❌ שגיאה בגיבוי:', error)
+    alert('❌ שגיאה בגיבוי הנתונים')
+  } finally {
+    backingUp.value = false
   }
 }
 

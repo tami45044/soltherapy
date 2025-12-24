@@ -670,30 +670,6 @@ const closeDialog = () => {
   formRef.value?.reset()
 }
 
-const resetAllBalances = async () => {
-  const confirmed = confirm('⚠️ האם את בטוחה שאת רוצה לאפס את כל החובות והסשנים של כל הלקוחות?\n\nזה יאפס:\n• balance → 0\n• totalSessions → 0\n\nזה בלתי הפיך!')
-
-  if (!confirmed) return
-
-  try {
-    console.log('🔄 מאפס חובות לכל הלקוחות...')
-
-    for (const client of clients.value) {
-      await updateDoc(doc(db, 'clients', client.id), {
-        balance: 0,
-        totalSessions: 0
-      })
-      console.log(`✅ אופס: ${client.name}`)
-    }
-
-    showSnackbar('✅ כל החובות והסשנים אופסו בהצלחה!', 'success')
-    await loadClients()
-  } catch (error) {
-    console.error('❌ שגיאה באיפוס חובות:', error)
-    showSnackbar('שגיאה באיפוס חובות', 'error')
-  }
-}
-
 const saveClient = async () => {
   const { valid } = await formRef.value.validate()
   if (!valid) return

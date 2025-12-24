@@ -14,6 +14,17 @@
         </div>
         <div class="d-flex gap-2">
           <v-btn
+            v-if="isTest"
+            color="primary"
+            variant="tonal"
+            rounded="lg"
+            @click="importData"
+            :loading="importingData"
+          >
+            <v-icon icon="mdi-database-import" start />
+            ייבוא גיבוי
+          </v-btn>
+          <v-btn
             v-if="isProduction"
             color="primary"
             variant="tonal"
@@ -437,6 +448,7 @@ import { db } from '@/firebase'
 import type { Client, Appointment, PaymentRecord } from '@/types/manage'
 import { backupFirestore } from '@/utils/backup'
 import { copyProductionToTest } from '@/utils/copy-data'
+import { importBackupFiles } from '@/utils/import-data'
 
 // Emit
 const emit = defineEmits(['navigate'])
@@ -450,10 +462,16 @@ const loadingBalanceDetails = ref(false)
 const selectedClientForBalance = ref<Client | null>(null)
 const backingUp = ref(false)
 const copyingData = ref(false)
+const importingData = ref(false)
 
 // Check if we're in production environment
 const isProduction = computed(() => {
   return import.meta.env.VITE_FIREBASE_PROJECT_ID === 'soltherapy-manage'
+})
+
+// Check if we're in test environment
+const isTest = computed(() => {
+  return import.meta.env.VITE_FIREBASE_PROJECT_ID === 'soltherapy-test'
 })
 
 const balanceDetails = ref({
@@ -664,7 +682,7 @@ const createBackup = async () => {
   if (!confirm('🔒 האם את רוצה ליצור גיבוי של כל הנתונים?\n\nהקבצים יורדו למחשב שלך.')) {
     return
   }
-  
+
   backingUp.value = true
   try {
     await backupFirestore()
@@ -691,6 +709,25 @@ const copyDataToTest = async () => {
     alert('❌ שגיאה בהעתקת הנתונים')
   } finally {
     copyingData.value = false
+  }
+}
+
+const importData = async () => {
+  if (!confirm('📥 ייבוא נתונים מגיבוי\n\nתתבקשי לבחור 4 קבצים (אחד אחרי השני):\n1. clients.json\n2. appointments.json\n3. schedule_template.json\n4. weekly_prizes.json\n\n⚠️ זה ימחק את כל הנתונים הקיימים!')) {
+    return
+  }
+  
+  importingData.value = true
+  try {
+    await importBackupFiles()
+    alert('✅ הייבוא הושלם בהצלחה!\n\nכל הנתונים מהגיבוי יובאו לסביבת הבדיקה.\n\nרענני את הדף כדי לראות את הנתונים!')
+    // Reload data
+    await loadData()
+  } catch (error) {
+    console.error('❌ שגיאה בייבוא:', error)
+    alert('❌ שגיאה בייבוא הנתונים')
+  } finally {
+    importingData.value = false
   }
 }
 

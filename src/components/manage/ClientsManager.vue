@@ -7,30 +7,17 @@
           <h2 class="text-h4 mb-2" style="color: #1e3a5f;">ניהול לקוחות</h2>
           <p class="text-subtitle-1 text-medium-emphasis">סה"כ {{ clients.length }} לקוחות במערכת</p>
         </div>
-        <div class="d-flex gap-2">
-          <v-btn
-            color="warning"
-            size="large"
-            rounded="xl"
-            elevation="4"
-            @click="resetAllBalances"
-            class="flex-shrink-0"
-          >
-            <v-icon icon="mdi-refresh" size="20" />
-            אפס חובות
-          </v-btn>
-          <v-btn
-            color="primary"
-            size="large"
-            rounded="xl"
-            elevation="4"
-            @click="openAddDialog"
-            class="flex-shrink-0"
-          >
-            <v-icon icon="mdi-plus" size="20" />
-            לקוח חדש
-          </v-btn>
-        </div>
+        <v-btn
+          color="primary"
+          size="large"
+          rounded="xl"
+          elevation="4"
+          @click="openAddDialog"
+          class="flex-shrink-0"
+        >
+          <v-icon icon="mdi-plus" size="20" />
+          לקוח חדש
+        </v-btn>
       </v-col>
     </v-row>
 

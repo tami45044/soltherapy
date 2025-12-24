@@ -1,6 +1,6 @@
 /**
  * Firestore Backup Utility (Browser-based)
- * 
+ *
  * This runs in the browser and uses your existing authentication
  * to export all data to JSON files.
  */
@@ -15,15 +15,15 @@ const COLLECTIONS = ['clients', 'appointments', 'schedule_template', 'weekly_pri
  */
 function convertTimestamp(obj: any): any {
   if (!obj) return obj
-  
+
   if (obj.seconds !== undefined && obj.nanoseconds !== undefined) {
     return new Date(obj.seconds * 1000).toISOString()
   }
-  
+
   if (obj instanceof Date) {
     return obj.toISOString()
   }
-  
+
   if (typeof obj === 'object' && !Array.isArray(obj)) {
     const converted: any = {}
     for (const [key, value] of Object.entries(obj)) {
@@ -31,11 +31,11 @@ function convertTimestamp(obj: any): any {
     }
     return converted
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(item => convertTimestamp(item))
   }
-  
+
   return obj
 }
 
@@ -44,11 +44,11 @@ function convertTimestamp(obj: any): any {
  */
 async function backupCollection(collectionName: string) {
   console.log(`📦 מגבה: ${collectionName}...`)
-  
+
   try {
     const snapshot = await getDocs(collection(db, collectionName))
     const data: any[] = []
-    
+
     snapshot.forEach(doc => {
       const docData = doc.data()
       data.push({
@@ -56,7 +56,7 @@ async function backupCollection(collectionName: string) {
         ...convertTimestamp(docData)
       })
     })
-    
+
     console.log(`   ✅ ${data.length} מסמכים גובו`)
     return { collection: collectionName, count: data.length, data, error: null }
   } catch (error: any) {
@@ -86,16 +86,16 @@ function downloadJSON(filename: string, data: any) {
  */
 export async function backupFirestore() {
   console.log('🚀 מתחיל גיבוי Firestore...\n')
-  
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
   const results: any[] = []
-  
+
   // Backup all collections
   for (const collectionName of COLLECTIONS) {
     const result = await backupCollection(collectionName)
     results.push(result)
   }
-  
+
   // Create summary
   const summary = {
     timestamp: new Date().toISOString(),
@@ -106,12 +106,12 @@ export async function backupFirestore() {
       error: r.error || null
     }))
   }
-  
+
   // Download all files
   console.log('\n' + '='.repeat(50))
   console.log('💾 מוריד קבצי גיבוי...')
   console.log('='.repeat(50))
-  
+
   // Download individual collections
   for (const result of results) {
     if (!result.error && result.data.length > 0) {
@@ -119,11 +119,11 @@ export async function backupFirestore() {
       console.log(`✅ הורד: ${result.collection}.json`)
     }
   }
-  
+
   // Download summary
   downloadJSON(`${timestamp}_summary.json`, summary)
   console.log(`✅ הורד: summary.json`)
-  
+
   // Print summary
   console.log('\n' + '='.repeat(50))
   console.log('✅ הגיבוי הושלם!')
@@ -137,7 +137,7 @@ export async function backupFirestore() {
     }
   })
   console.log('='.repeat(50))
-  
+
   return summary
 }
 

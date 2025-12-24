@@ -12,16 +12,29 @@
             {{ formatDate(new Date()) }}
           </p>
         </div>
-        <v-btn
-          color="success"
-          variant="tonal"
-          rounded="lg"
-          @click="createBackup"
-          :loading="backingUp"
-        >
-          <v-icon icon="mdi-database-export" start />
-          גיבוי נתונים
-        </v-btn>
+        <div class="d-flex gap-2">
+          <v-btn
+            v-if="isProduction"
+            color="primary"
+            variant="tonal"
+            rounded="lg"
+            @click="copyDataToTest"
+            :loading="copyingData"
+          >
+            <v-icon icon="mdi-content-copy" start />
+            העתק לבדיקה
+          </v-btn>
+          <v-btn
+            color="success"
+            variant="tonal"
+            rounded="lg"
+            @click="createBackup"
+            :loading="backingUp"
+          >
+            <v-icon icon="mdi-database-export" start />
+            גיבוי נתונים
+          </v-btn>
+        </div>
       </v-col>
     </v-row>
 
@@ -423,6 +436,7 @@ import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'fire
 import { db } from '@/firebase'
 import type { Client, Appointment, PaymentRecord } from '@/types/manage'
 import { backupFirestore } from '@/utils/backup'
+import { copyProductionToTest } from '@/utils/copy-data'
 
 // Emit
 const emit = defineEmits(['navigate'])
@@ -435,6 +449,12 @@ const showBalanceDialog = ref(false)
 const loadingBalanceDetails = ref(false)
 const selectedClientForBalance = ref<Client | null>(null)
 const backingUp = ref(false)
+const copyingData = ref(false)
+
+// Check if we're in production environment
+const isProduction = computed(() => {
+  return import.meta.env.VITE_FIREBASE_PROJECT_ID === 'soltherapy-manage'
+})
 
 const balanceDetails = ref({
   totalOwed: 0,
@@ -654,6 +674,23 @@ const createBackup = async () => {
     alert('❌ שגיאה בגיבוי הנתונים')
   } finally {
     backingUp.value = false
+  }
+}
+
+const copyDataToTest = async () => {
+  if (!confirm('🔄 האם את רוצה להעתיק את כל הנתונים מהייצור (soltherapy-manage) לסביבת הבדיקה (soltherapy-test)?\n\n⚠️ זה ימחק את כל הנתונים הקיימים בסביבת הבדיקה!')) {
+    return
+  }
+  
+  copyingData.value = true
+  try {
+    await copyProductionToTest()
+    alert('✅ ההעתקה הושלמה בהצלחה!\n\nכל הנתונים הועתקו לסביבת הבדיקה (soltherapy-test).\n\nעכשיו תוכלי לעבוד על עותק של הנתונים בלי לפגוע במקור!')
+  } catch (error) {
+    console.error('❌ שגיאה בהעתקה:', error)
+    alert('❌ שגיאה בהעתקת הנתונים')
+  } finally {
+    copyingData.value = false
   }
 }
 

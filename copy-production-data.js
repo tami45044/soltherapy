@@ -32,10 +32,10 @@ try {
  */
 function fixDataTypes(data, collectionName) {
   // Fields that should be numbers
-  const numberFields = ['price', 'pricePerSession', 'balance', 'totalSessions', 
+  const numberFields = ['price', 'pricePerSession', 'balance', 'totalSessions',
                         'sessionNumber', 'paymentAmount', 'amount', 'groupPrice',
                         'weeklyTarget', 'targetAmount']
-  
+
   // Convert string numbers to numbers
   for (const field of numberFields) {
     if (data[field] !== undefined && data[field] !== null) {
@@ -45,7 +45,7 @@ function fixDataTypes(data, collectionName) {
       }
     }
   }
-  
+
   // Fix nested arrays (like payments, groupParticipants)
   if (data.payments && Array.isArray(data.payments)) {
     data.payments = data.payments.map(p => {
@@ -53,7 +53,7 @@ function fixDataTypes(data, collectionName) {
       return p
     })
   }
-  
+
   if (data.groupParticipants && Array.isArray(data.groupParticipants)) {
     data.groupParticipants = data.groupParticipants.map(p => {
       if (p.payments && Array.isArray(p.payments)) {
@@ -65,7 +65,7 @@ function fixDataTypes(data, collectionName) {
       return p
     })
   }
-  
+
   return data
 }
 
@@ -134,7 +134,7 @@ async function copyData() {
           const fixedData = fixDataTypes(item.data, collectionName)
           await testDb.collection(collectionName).doc(item.id).set(fixedData)
           copied++
-          
+
           // Progress indicator every 10 docs
           if (copied % 10 === 0) {
             process.stdout.write(`   📝 הועתקו ${copied}/${dataToInsert.length}...\r`)

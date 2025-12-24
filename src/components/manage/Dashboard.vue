@@ -502,7 +502,15 @@ const stats = computed(() => {
   // פונקציה לחישוב תשלומים בפועל
   const calculateActualPayments = (appts: Appointment[]) => {
     return appts.reduce((sum, a) => {
-      if (a.payments && Array.isArray(a.payments)) {
+      if (a.isGroup && a.groupParticipants) {
+        // For group appointments - sum payments from all participants
+        return sum + a.groupParticipants.reduce((gSum, p) => {
+          if (p.payments && Array.isArray(p.payments)) {
+            return gSum + p.payments.reduce((pSum, pay) => pSum + pay.amount, 0)
+          }
+          return gSum
+        }, 0)
+      } else if (a.payments && Array.isArray(a.payments)) {
         return sum + a.payments.reduce((pSum, p) => pSum + p.amount, 0)
       } else if (a.paymentAmount) {
         return sum + a.paymentAmount
@@ -511,12 +519,31 @@ const stats = computed(() => {
     }, 0)
   }
 
+  // פונקציה לחישוב מחיר פגישה (כולל קבוצה טיפולית)
+  const getAppointmentPrice = (apt: Appointment) => {
+    if (apt.isGroup && apt.groupParticipants) {
+      // For group - count only attended participants
+      const attendedCount = apt.groupParticipants.filter(p => p.attended).length
+      return attendedCount * (apt.groupPrice || 0)
+    }
+    return apt.price || 0
+  }
+
+  // פונקציה לחישוב מחיר מתוכנן (כל המשתתפים בקבוצה)
+  const getExpectedPrice = (apt: Appointment) => {
+    if (apt.isGroup && apt.groupParticipants) {
+      return apt.groupParticipants.length * (apt.groupPrice || 0)
+    }
+    return apt.price || 0
+  }
+
   // חישובים שבועיים
-  // סכום מצופה = כל הפגישות המתוכננות
-  // הכנסה בפועל = פגישות שהלקוח הגיע אליהן (לפי מחיר הפגישה)
+  // סכום מצופה = כל הפגישות המתוכננות (כולל כל משתתפי קבוצה)
+  // הכנסה בפועל = פגישות שהלקוח הגיע אליהן (כולל משתתפים שהגיעו לקבוצה)
   // שולם בפועל = תשלומים שהתקבלו בפועל
-  const weekExpected = weekAppts.reduce((sum, a) => sum + a.price, 0)
-  const weekActual = weekAppts.filter(a => a.attended).reduce((sum, a) => sum + a.price, 0)
+  const weekExpected = weekAppts.reduce((sum, a) => sum + getExpectedPrice(a), 0)
+  const weekActual = weekAppts.filter(a => a.attended || (a.isGroup && a.groupParticipants?.some(p => p.attended)))
+    .reduce((sum, a) => sum + getAppointmentPrice(a), 0)
   const weekPaid = calculateActualPayments(weekAppts)
   const weekPercentage = weekExpected > 0 ? Math.round((weekActual / weekExpected) * 100) : 0
 
@@ -529,11 +556,12 @@ const stats = computed(() => {
   })
 
   // חישובים חודשיים
-  // סכום מצופה = כל הפגישות המתוכננות
-  // הכנסה בפועל = פגישות שהלקוח הגיע אליהן (לפי מחיר הפגישה)
+  // סכום מצופה = כל הפגישות המתוכננות (כולל כל משתתפי קבוצה)
+  // הכנסה בפועל = פגישות שהלקוח הגיע אליהן (כולל משתתפים שהגיעו לקבוצה)
   // שולם בפועל = תשלומים שהתקבלו בפועל
-  const monthExpected = monthAppts.reduce((sum, a) => sum + a.price, 0)
-  const monthActual = monthAppts.filter(a => a.attended).reduce((sum, a) => sum + a.price, 0)
+  const monthExpected = monthAppts.reduce((sum, a) => sum + getExpectedPrice(a), 0)
+  const monthActual = monthAppts.filter(a => a.attended || (a.isGroup && a.groupParticipants?.some(p => p.attended)))
+    .reduce((sum, a) => sum + getAppointmentPrice(a), 0)
   const monthPaid = calculateActualPayments(monthAppts)
   const monthPercentage = monthExpected > 0 ? Math.round((monthActual / monthExpected) * 100) : 0
 
@@ -745,44 +773,79 @@ const showBalanceDetails = async (client: Client) => {
   loadingBalanceDetails.value = true
 
   try {
-    // Get all appointments for this client
-    const appointmentsQuery = query(
-      collection(db, 'appointments'),
-      where('clientId', '==', client.id)
-    )
-    const appointmentsSnapshot = await getDocs(appointmentsQuery)
+    // Get all appointments (we'll filter in memory for group appointments)
+    const allAppointmentsQuery = query(collection(db, 'appointments'))
+    const allAppointmentsSnapshot = await getDocs(allAppointmentsQuery)
 
     let totalOwed = 0
     let totalPaid = 0
     const appointmentsList: any[] = []
 
-    appointmentsSnapshot.forEach(docSnap => {
+    allAppointmentsSnapshot.forEach(docSnap => {
       const apt = docSnap.data()
       const aptDate = apt.date?.toDate ? apt.date.toDate() : new Date(apt.date)
 
-      if (apt.attended) {
-        const paidForApt = apt.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
-        totalOwed += apt.price || 0
-        totalPaid += paidForApt
+      // Check if this is a regular appointment for this client
+      if (apt.clientId === client.id) {
+        if (apt.attended) {
+          const paidForApt = apt.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
+          totalOwed += apt.price || 0
+          totalPaid += paidForApt
 
-        appointmentsList.push({
-          date: aptDate,
-          time: apt.time,
-          price: apt.price || 0,
-          paid: paidForApt,
-          balance: paidForApt - apt.price,
-          attended: true
-        })
-      } else {
-        // Show non-attended appointments too
-        appointmentsList.push({
-          date: aptDate,
-          time: apt.time,
-          price: apt.price || 0,
-          paid: 0,
-          balance: 0,
-          attended: false
-        })
+          appointmentsList.push({
+            date: aptDate,
+            time: apt.time,
+            price: apt.price || 0,
+            paid: paidForApt,
+            balance: paidForApt - apt.price,
+            attended: true,
+            isGroup: false
+          })
+        } else {
+          // Show non-attended appointments too
+          appointmentsList.push({
+            date: aptDate,
+            time: apt.time,
+            price: apt.price || 0,
+            paid: 0,
+            balance: 0,
+            attended: false,
+            isGroup: false
+          })
+        }
+      }
+      // Check if this is a group appointment and client is a participant
+      else if (apt.isGroup && apt.groupParticipants && Array.isArray(apt.groupParticipants)) {
+        const participant = apt.groupParticipants.find((p: any) => p.clientId === client.id)
+        if (participant) {
+          if (participant.attended) {
+            const paidForParticipant = participant.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
+            const priceForParticipant = apt.groupPrice || 0
+            totalOwed += priceForParticipant
+            totalPaid += paidForParticipant
+
+            appointmentsList.push({
+              date: aptDate,
+              time: apt.time,
+              price: priceForParticipant,
+              paid: paidForParticipant,
+              balance: paidForParticipant - priceForParticipant,
+              attended: true,
+              isGroup: true
+            })
+          } else {
+            // Show non-attended group appointments too
+            appointmentsList.push({
+              date: aptDate,
+              time: apt.time,
+              price: apt.groupPrice || 0,
+              paid: 0,
+              balance: 0,
+              attended: false,
+              isGroup: true
+            })
+          }
+        }
       }
     })
 

@@ -1127,7 +1127,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where, orderBy as firestoreOrderBy } from 'firebase/firestore'
 import { db } from '@/firebase'
 import type { Client, Appointment, ScheduleSlot } from '@/types/manage'
 
@@ -2589,6 +2589,11 @@ const saveGroupSession = async () => {
   savingAppointment.value = true
   try {
     const appointmentRef = doc(db, 'appointments', selectedAppointment.value.id)
+    
+    // Get old appointment data to compare
+    const oldAppointmentSnap = await getDoc(appointmentRef)
+    const oldAppointment = oldAppointmentSnap.data()
+    const oldParticipants = oldAppointment?.groupParticipants || []
 
     // Calculate total expected income (only from attended participants)
     const attendedParticipants = groupParticipants.value.filter(p => p.attended)
@@ -2607,19 +2612,46 @@ const saveGroupSession = async () => {
       attended: attendedParticipants.length > 0
     })
 
-    // Update client balances
+    // Update client balances - track changes in attendance
     for (const participant of groupParticipants.value) {
-      if (participant.attended) {
-        const client = clients.value.find(c => c.id === participant.clientId)
-        if (!client) continue
+      const client = clients.value.find(c => c.id === participant.clientId)
+      if (!client) continue
 
+      const oldParticipant = oldParticipants.find((p: any) => p.clientId === participant.clientId)
+      const wasAttended = oldParticipant?.attended || false
+      const isNowAttended = participant.attended
+
+      const clientRef = doc(db, 'clients', participant.clientId)
+
+      // Case 1: Participant just marked as attended
+      if (!wasAttended && isNowAttended) {
         const totalPaid = participant.payments.reduce((sum, p) => sum + p.amount, 0)
-        const debt = groupForm.value.groupPrice - totalPaid
+        const balanceChange = totalPaid - groupForm.value.groupPrice
 
-        if (debt !== 0) {
-          const clientRef = doc(db, 'clients', participant.clientId)
+        await updateDoc(clientRef, {
+          balance: (client.balance || 0) + balanceChange,
+          totalSessions: (client.totalSessions || 0) + 1
+        })
+      }
+      // Case 2: Participant was attended but now unmarked
+      else if (wasAttended && !isNowAttended) {
+        const oldTotalPaid = oldParticipant.payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
+        const oldBalanceChange = oldTotalPaid - groupForm.value.groupPrice
+
+        await updateDoc(clientRef, {
+          balance: (client.balance || 0) - oldBalanceChange,
+          totalSessions: Math.max(0, (client.totalSessions || 0) - 1)
+        })
+      }
+      // Case 3: Still attended - only update if payments changed
+      else if (wasAttended && isNowAttended) {
+        const oldTotalPaid = oldParticipant.payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
+        const newTotalPaid = participant.payments.reduce((sum, p) => sum + p.amount, 0)
+        const paymentDifference = newTotalPaid - oldTotalPaid
+
+        if (paymentDifference !== 0) {
           await updateDoc(clientRef, {
-            balance: (client.balance || 0) - debt
+            balance: (client.balance || 0) + paymentDifference
           })
         }
       }

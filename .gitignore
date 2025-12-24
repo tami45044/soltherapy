@@ -39,3 +39,12 @@ test-results/
 playwright-report/
 
 .cursor/rules/shared
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Backups
+backups/
+*.backup.json

@@ -48,3 +48,7 @@ playwright-report/
 # Backups
 backups/
 *.backup.json
+
+# Service Account Keys (NEVER commit these!)
+*-key.json
+soltherapy-*.json

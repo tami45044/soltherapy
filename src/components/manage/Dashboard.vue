@@ -699,7 +699,7 @@ const copyDataToTest = async () => {
   if (!confirm('🔄 האם את רוצה להעתיק את כל הנתונים מהייצור (soltherapy-manage) לסביבת הבדיקה (soltherapy-test)?\n\n⚠️ זה ימחק את כל הנתונים הקיימים בסביבת הבדיקה!')) {
     return
   }
-  
+
   copyingData.value = true
   try {
     await copyProductionToTest()
@@ -716,7 +716,7 @@ const importData = async () => {
   if (!confirm('📥 ייבוא נתונים מגיבוי\n\nתתבקשי לבחור 4 קבצים (אחד אחרי השני):\n1. clients.json\n2. appointments.json\n3. schedule_template.json\n4. weekly_prizes.json\n\n⚠️ זה ימחק את כל הנתונים הקיימים!')) {
     return
   }
-  
+
   importingData.value = true
   try {
     await importBackupFiles()

@@ -15,7 +15,8 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
-    "backup": "node scripts/backup-firestore.js"
+    "backup": "node scripts/backup-firestore.js",
+    "copy-data": "node copy-production-data.js"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
@@ -38,6 +39,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-playwright": "^1.0.0",
     "eslint-plugin-vue": "^9.20.0",
+    "firebase-admin": "^13.6.0",
     "jsdom": "^24.0.0",
     "npm-run-all2": "^6.1.0",
     "typescript": "~5.3.0",

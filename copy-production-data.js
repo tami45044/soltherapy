@@ -27,6 +27,48 @@ try {
   process.exit(1)
 }
 
+/**
+ * Fix data types (convert string numbers to actual numbers)
+ */
+function fixDataTypes(data, collectionName) {
+  // Fields that should be numbers
+  const numberFields = ['price', 'pricePerSession', 'balance', 'totalSessions', 
+                        'sessionNumber', 'paymentAmount', 'amount', 'groupPrice',
+                        'weeklyTarget', 'targetAmount']
+  
+  // Convert string numbers to numbers
+  for (const field of numberFields) {
+    if (data[field] !== undefined && data[field] !== null) {
+      const val = data[field]
+      if (typeof val === 'string' && !isNaN(val) && val.trim() !== '') {
+        data[field] = Number(val)
+      }
+    }
+  }
+  
+  // Fix nested arrays (like payments, groupParticipants)
+  if (data.payments && Array.isArray(data.payments)) {
+    data.payments = data.payments.map(p => {
+      if (p.amount) p.amount = Number(p.amount)
+      return p
+    })
+  }
+  
+  if (data.groupParticipants && Array.isArray(data.groupParticipants)) {
+    data.groupParticipants = data.groupParticipants.map(p => {
+      if (p.payments && Array.isArray(p.payments)) {
+        p.payments = p.payments.map(payment => {
+          if (payment.amount) payment.amount = Number(payment.amount)
+          return payment
+        })
+      }
+      return p
+    })
+  }
+  
+  return data
+}
+
 async function copyData() {
   console.log('\n' + '='.repeat(60))
   console.log('🚀 מעתיק נתונים מ-Production ל-Test')
@@ -83,14 +125,16 @@ async function copyData() {
 
         console.log(`   ✓ נמחקו ${testSnapshot.size} מסמכים ישנים`)
 
-        // Step 3: Write to test
+        // Step 3: Write to test (with data type fixes)
         console.log('   💾 מעתיק ל-test...')
         let copied = 0
 
         for (const item of dataToInsert) {
-          await testDb.collection(collectionName).doc(item.id).set(item.data)
+          // Fix data types before saving
+          const fixedData = fixDataTypes(item.data, collectionName)
+          await testDb.collection(collectionName).doc(item.id).set(fixedData)
           copied++
-
+          
           // Progress indicator every 10 docs
           if (copied % 10 === 0) {
             process.stdout.write(`   📝 הועתקו ${copied}/${dataToInsert.length}...\r`)

@@ -16,29 +16,20 @@
 
 ## 💾 יצירת גיבוי
 
-### דרך 1: גיבוי אוטומטי (מומלץ!)
+### דרך 1: גיבוי מהמערכת (מומלץ! קל וב טוח!)
 
-הריצי את הפקודה הזאת במחשב:
+1. **היכנסי למערכת** (במחשב או באתר)
+2. **לכי לדשבורד**
+3. **לחצי על הכפתור "גיבוי נתונים"** (למעלה מימין, כפתור ירוק)
+4. **אשרי את הפופאפ**
+5. **הקבצים ירדו לתיקיית Downloads שלך!** 🎉
 
-```bash
-npm run backup
-```
-
-**מה זה עושה:**
-- יוצר תיקיה `backups/` עם תאריך ושעה
-- שומר את כל הנתונים מ-Production ל-JSON
-- כולל: לקוחות, פגישות, תבניות, פרסים
-
-**איפה הגיבוי נשמר:**
-```
-backups/
-  └── 2024-12-23T15-30-00/
-      ├── clients.json
-      ├── appointments.json
-      ├── schedule_template.json
-      ├── weekly_prizes.json
-      └── _summary.json
-```
+**מה זה יוריד:**
+- `YYYY-MM-DDTHH-MM-SS_clients.json` - כל הלקוחות
+- `YYYY-MM-DDTHH-MM-SS_appointments.json` - כל הפגישות
+- `YYYY-MM-DDTHH-MM-SS_schedule_template.json` - התבנית השבועית
+- `YYYY-MM-DDTHH-MM-SS_weekly_prizes.json` - הפרסים
+- `YYYY-MM-DDTHH-MM-SS_summary.json` - סיכום הגיבוי
 
 ### דרך 2: גיבוי ידני (מ-Firebase Console)
 

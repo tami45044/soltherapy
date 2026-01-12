@@ -962,7 +962,7 @@ const loadReports = async () => {
       reports.push({
         month: monthKey,
         monthName: formatMonthName(monthKey),
-        totalAppointments: data.appointments.length,
+        totalAppointments: data.appointments.filter((apt: Appointment) => apt.attended).length,
         expectedRevenue: data.expectedRevenue,
         actualPaid: data.paidInMonth,
         totalExpenses: data.expenses,

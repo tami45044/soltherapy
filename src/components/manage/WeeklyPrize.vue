@@ -276,17 +276,27 @@
                 נפתח ב: {{ formatDateTime(currentPrize.unlockedAt!) }}
               </p>
 
-              <v-btn
-                v-if="isAdmin"
-                color="primary"
-                size="large"
-                rounded="xl"
-                class="mt-6"
-                @click="startNewWeek"
-              >
-                <v-icon icon="mdi-restart" />
-                התחל שבוע חדש
-              </v-btn>
+              <div class="d-flex gap-3 mt-6">
+                <v-btn
+                  color="success"
+                  size="large"
+                  rounded="xl"
+                  @click="closeCurrentPrize"
+                >
+                  <v-icon icon="mdi-check-circle" start />
+                  סגור ועבור לשבוע הבא
+                </v-btn>
+
+                <v-btn
+                  color="warning"
+                  size="large"
+                  rounded="xl"
+                  @click="hideUnlockedPrize"
+                >
+                  <v-icon icon="mdi-eye-off" start />
+                  הסתר פרס זה
+                </v-btn>
+              </div>
             </div>
 
           </v-card-text>
@@ -339,6 +349,89 @@
       </v-col>
     </v-row>
 
+    <!-- Available Prizes to Unlock -->
+    <v-row v-if="availablePrizes.length > 0" class="mt-6">
+      <v-col cols="12">
+        <h3 class="text-h4 mb-4 text-center">
+          <v-icon icon="mdi-gift-open-outline" size="32" color="success" />
+          🎁 פרסים זמינים לפתיחה! 🎁
+        </h3>
+        <p class="text-subtitle-1 text-center text-medium-emphasis mb-6">
+          עמדת ביעד בשבועות הבאים! לחץ על כל פרס כדי לפתוח אותו
+        </p>
+      </v-col>
+
+      <v-col
+        v-for="(prize, index) in availablePrizes"
+        :key="prize.id"
+        cols="12"
+        sm="6"
+        md="4"
+      >
+        <v-card
+          class="available-prize-card"
+          rounded="xl"
+          elevation="8"
+          hover
+        >
+          <v-card-text class="pa-6 text-center">
+            <!-- Gift Icon with Glow -->
+            <div class="mb-4">
+              <v-icon
+                icon="mdi-gift"
+                size="80"
+                color="warning"
+                class="gift-icon-small"
+              />
+            </div>
+
+            <!-- Week Info -->
+            <h4 class="text-h5 mb-2">
+              שבוע {{ formatDateTime(prize.weekStart).split(' ')[0] }}
+            </h4>
+            <p class="text-body-2 text-medium-emphasis mb-4">
+              {{ formatDateTime(prize.weekStart) }}
+            </p>
+
+            <!-- Prize Text - Hidden until unlocked -->
+            <v-alert type="warning" variant="tonal" class="mb-4">
+              <div class="text-center">
+                <v-icon icon="mdi-gift-outline" size="48" color="warning" class="mb-2" />
+                <p class="text-h6 font-weight-bold mb-1">
+                  🎁 פרס מיוחד ממתין לך!
+                </p>
+                <p class="text-body-2 text-medium-emphasis">
+                  פתח את הפרס כדי לראות מה בפנים...
+                </p>
+              </div>
+            </v-alert>
+
+            <!-- Status Chip -->
+            <div class="mb-4 text-center">
+              <v-chip color="success" size="large" variant="elevated">
+                <v-icon icon="mdi-star" start />
+                זכית בפרס!
+              </v-chip>
+            </div>
+
+            <!-- Unlock Button -->
+            <v-btn
+              color="success"
+              variant="elevated"
+              rounded="xl"
+              block
+              size="large"
+              @click="unlockSpecificPrize(prize)"
+              class="unlock-prize-btn"
+            >
+              <v-icon icon="mdi-gift-open" start />
+              פתח פרס!
+            </v-btn>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">
       {{ snackbar.message }}
@@ -366,6 +459,7 @@ const prizeSettings = ref({
   text: 'הפתעה מיוחדת! 🎁'
 })
 
+const availablePrizes = ref<WeeklyPrize[]>([]) // כל הפרסים הזמינים לפתיחה
 const unlocking = ref(false)
 const savingSettings = ref(false)
 const appointmentsCount = ref(0) // מספר פגישות בשבוע
@@ -504,6 +598,9 @@ const loadPrize = async () => {
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekEnd.getDate() + 7)
 
+    console.log('📅 Loading prize for current week:', weekStart.toISOString().split('T')[0])
+    console.log('📅 Week end:', weekEnd.toISOString().split('T')[0])
+
     const q = query(
       collection(db, 'weekly_prizes'),
       where('weekStart', '>=', weekStart),
@@ -512,15 +609,26 @@ const loadPrize = async () => {
 
     const snapshot = await getDocs(q)
 
+    console.log('📦 Prizes found for current week:', snapshot.docs.length)
+
     if (snapshot.empty) {
+      console.log('⚠️ No prize for current week, creating new one...')
       await createNewPrize()
     } else {
       const doc = snapshot.docs[0]
+      const prizeData = doc.data()
+
+      console.log('✅ Loaded prize:', {
+        weekStart: prizeData.weekStart?.toDate().toISOString().split('T')[0],
+        isUnlocked: prizeData.isUnlocked,
+        prizeText: prizeData.prizeText
+      })
+
       currentPrize.value = {
         id: doc.id,
-        ...doc.data(),
-        weekStart: doc.data().weekStart?.toDate() || weekStart,
-        unlockedAt: doc.data().unlockedAt?.toDate()
+        ...prizeData,
+        weekStart: prizeData.weekStart?.toDate() || weekStart,
+        unlockedAt: prizeData.unlockedAt?.toDate()
       } as WeeklyPrize
 
       prizeSettings.value = {
@@ -529,8 +637,75 @@ const loadPrize = async () => {
 
       await calculateWeeklyStats()
     }
+
+    // טען גם פרסים זמינים מהעבר
+    await loadAvailablePrizes()
   } catch (error) {
     console.error('Error loading prize:', error)
+  }
+}
+
+// Load all available prizes (unlocked by admin, not yet opened by user)
+const loadAvailablePrizes = async () => {
+  try {
+    const now = new Date()
+
+    console.log('🔍 Loading available prizes...')
+    console.log('Current date:', now)
+
+    // Get all prizes that are not unlocked yet
+    const q = query(
+      collection(db, 'weekly_prizes'),
+      where('isUnlocked', '==', false)
+    )
+
+    const snapshot = await getDocs(q)
+
+    console.log('📦 Total prizes with isUnlocked=false:', snapshot.docs.length)
+
+    const allPrizes = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      weekStart: doc.data().weekStart?.toDate() || new Date(),
+      unlockedAt: doc.data().unlockedAt?.toDate()
+    }))
+
+    console.log('📋 All prizes:', allPrizes.map(p => ({
+      weekStart: p.weekStart.toISOString().split('T')[0],
+      actual: p.weeklyActual,
+      isUnlocked: p.isUnlocked
+    })))
+
+    availablePrizes.value = allPrizes
+      .filter(prize => {
+        const isPast = prize.weekStart < now
+        const metTarget = prize.weeklyActual >= minRevenue
+        const isNotCurrentWeek = getWeekStart(prize.weekStart).getTime() !== getWeekStart(now).getTime()
+        const manuallyAvailable = prize.availableToUnlock === true
+
+        console.log(`Week ${prize.weekStart.toISOString().split('T')[0]}:`, {
+          isPast,
+          metTarget,
+          manuallyAvailable,
+          isNotCurrentWeek,
+          actual: prize.weeklyActual,
+          target: minRevenue
+        })
+
+        // Show if: past week + not current week + (met target OR manually marked as available)
+        return isPast && isNotCurrentWeek && (metTarget || manuallyAvailable)
+      })
+      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime()) as WeeklyPrize[]
+
+    console.log('🎁 Available prizes to unlock:', availablePrizes.value.length)
+    console.log('🎉 Prizes:', availablePrizes.value.map(p => ({
+      weekStart: p.weekStart.toISOString().split('T')[0],
+      prizeText: p.prizeText,
+      availableToUnlock: p.availableToUnlock,
+      isUnlocked: p.isUnlocked
+    })))
+  } catch (error) {
+    console.error('Error loading available prizes:', error)
   }
 }
 
@@ -647,11 +822,42 @@ const unlockPrize = async () => {
     currentPrize.value.unlockedAt = new Date()
 
     showSnackbar('🎉 מזל טוב! הפרס נפתח!', 'success')
+
+    // Reload available prizes
+    await loadAvailablePrizes()
   } catch (error) {
     console.error('Error unlocking prize:', error)
     showSnackbar('שגיאה בפתיחת הפרס', 'error')
   } finally {
     unlocking.value = false
+  }
+}
+
+const unlockSpecificPrize = async (prize: WeeklyPrize) => {
+  if (!confirm(`🎁 לפתוח את הפרס המיוחד?\n\nאתה עומד לגלות מה זכית!`)) return
+
+  try {
+    await updateDoc(doc(db, 'weekly_prizes', prize.id), {
+      isUnlocked: true,
+      unlockedAt: new Date()
+    })
+
+    // Load this prize as the current one to show the celebration
+    currentPrize.value = {
+      ...prize,
+      isUnlocked: true,
+      unlockedAt: new Date()
+    }
+
+    showSnackbar('🎉 מזל טוב! הפרס נפתח!', 'success')
+
+    // Reload available prizes after a delay to show celebration
+    setTimeout(async () => {
+      await loadAvailablePrizes()
+    }, 3000)
+  } catch (error) {
+    console.error('Error unlocking prize:', error)
+    showSnackbar('שגיאה בפתיחת הפרס', 'error')
   }
 }
 
@@ -682,6 +888,107 @@ const startNewWeek = async () => {
   } catch (error) {
     console.error('Error starting new week:', error)
     showSnackbar('שגיאה ביצירת שבוע חדש', 'error')
+  }
+}
+
+const closeCurrentPrize = async () => {
+  try {
+    console.log('🔄 Closing current prize and moving to next week...')
+
+    // Check if current prize's week has ended
+    const now = new Date()
+    const currentWeekStart = getWeekStart(now)
+    const prizeWeekStart = getWeekStart(currentPrize.value.weekStart)
+
+    console.log('Current week start:', currentWeekStart.toISOString().split('T')[0])
+    console.log('Prize week start:', prizeWeekStart.toISOString().split('T')[0])
+
+    // If we're in a new week, create a new prize
+    if (currentWeekStart.getTime() !== prizeWeekStart.getTime()) {
+      console.log('✅ New week detected, creating new prize...')
+      await createNewPrize()
+      await loadAvailablePrizes()
+      showSnackbar('✅ עברנו לשבוע החדש!', 'success')
+    } else {
+      // Same week, just reload
+      console.log('⚠️ Same week, just reloading...')
+      await loadPrize()
+      showSnackbar('🔄 רענון...', 'info')
+    }
+  } catch (error) {
+    console.error('Error closing prize:', error)
+    showSnackbar('שגיאה', 'error')
+  }
+}
+
+const hideUnlockedPrize = async () => {
+  try {
+    console.log('🙈 Hiding unlocked prize and showing current week...')
+
+    // Force reset to current week
+    const weekStart = getWeekStart(new Date())
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+
+    console.log('Looking for prize in week:', weekStart.toISOString().split('T')[0])
+
+    // Look for ALL prizes in current week (simpler query, no index needed)
+    const q = query(
+      collection(db, 'weekly_prizes'),
+      where('weekStart', '>=', weekStart),
+      where('weekStart', '<', weekEnd)
+    )
+
+    const snapshot = await getDocs(q)
+
+    console.log('📦 Found prizes in current week:', snapshot.docs.length)
+
+    // Find first unlocked prize, or any prize
+    let selectedDoc = null
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data()
+      console.log('Prize:', {
+        weekStart: data.weekStart?.toDate().toISOString().split('T')[0],
+        isUnlocked: data.isUnlocked
+      })
+
+      // Prefer unlocked prizes
+      if (!data.isUnlocked) {
+        selectedDoc = doc
+        break
+      }
+    }
+
+    // If no unlocked prize found, use first one or create new
+    if (!selectedDoc && snapshot.docs.length > 0) {
+      selectedDoc = snapshot.docs[0]
+    }
+
+    if (!selectedDoc) {
+      console.log('No prize for current week, creating...')
+      await createNewPrize()
+    } else {
+      const data = selectedDoc.data()
+      currentPrize.value = {
+        id: selectedDoc.id,
+        ...data,
+        weekStart: data.weekStart?.toDate() || weekStart,
+        unlockedAt: data.unlockedAt?.toDate()
+      } as WeeklyPrize
+
+      prizeSettings.value = {
+        text: currentPrize.value.prizeText
+      }
+
+      await calculateWeeklyStats()
+    }
+
+    await loadAvailablePrizes()
+    showSnackbar('✅ מציג את השבוע הנוכחי', 'success')
+  } catch (error) {
+    console.error('Error hiding prize:', error)
+    showSnackbar('שגיאה', 'error')
   }
 }
 
@@ -1312,6 +1619,36 @@ onMounted(() => {
   .mega-unlock-button {
     padding: 24px 32px !important;
     min-height: 60px !important;
+  }
+}
+
+/* Available Prizes Cards */
+.available-prize-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.available-prize-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+.gift-icon-small {
+  animation: gentle-bounce 2s ease-in-out infinite;
+  filter: drop-shadow(0 5px 15px rgba(255, 193, 7, 0.4));
+}
+
+.unlock-prize-btn {
+  animation: button-glow 2s ease-in-out infinite;
+}
+
+@keyframes button-glow {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 25px rgba(76, 175, 80, 0.8);
   }
 }
 </style>

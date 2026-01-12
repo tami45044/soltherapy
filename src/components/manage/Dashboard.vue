@@ -256,16 +256,23 @@
                   variant="tonal"
                   color="error"
                   class="clickable-debt-item pa-3"
-                  @click="showBalanceDetails(client)"
-                  style="cursor: pointer;"
                 >
-                  <div class="text-right">
-                    <div class="font-weight-bold mb-1">
-                      {{ client.name }}
+                  <div class="d-flex justify-space-between align-center">
+                    <div class="text-right flex-grow-1" @click="showBalanceDetails(client)" style="cursor: pointer;">
+                      <div class="font-weight-bold mb-1">
+                        {{ client.name }}
+                      </div>
+                      <v-chip size="small" color="error" variant="flat" class="font-weight-bold">
+                        חוב: ₪{{ Math.abs(client.balance) }}
+                      </v-chip>
                     </div>
-                    <v-chip size="small" color="error" variant="flat" class="font-weight-bold">
-                      חוב: ₪{{ Math.abs(client.balance) }}
-                    </v-chip>
+                    <v-btn
+                      icon="mdi-cash-plus"
+                      size="small"
+                      color="success"
+                      variant="flat"
+                      @click.stop="openDebtPaymentDialog(client)"
+                    />
                   </div>
                 </v-card>
               </v-col>
@@ -426,9 +433,91 @@
               </v-card-text>
             </v-card>
 
+            <!-- Debt Additions List (הוספות חוב ידניות) -->
+            <div v-if="balanceDetails.debtAdditions && balanceDetails.debtAdditions.length > 0" class="mb-4">
+              <h4 class="text-subtitle-1 font-weight-bold mb-3">
+                <v-icon icon="mdi-alert-circle" size="small" color="error" class="ml-2" />
+                הוספות חוב
+              </h4>
+              <v-list density="compact" class="debt-additions-list">
+                <v-list-item
+                  v-for="(addition, idx) in balanceDetails.debtAdditions"
+                  :key="idx"
+                  class="addition-item rounded-lg mb-2 bg-error-lighten-5"
+                >
+                  <template #prepend>
+                    <v-icon icon="mdi-plus-circle" color="error" />
+                  </template>
+
+                  <v-list-item-title>
+                    <div class="d-flex align-center gap-2">
+                      <span class="font-weight-bold">{{ new Intl.DateTimeFormat('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(addition.date) }}</span>
+                      <v-chip size="x-small" color="error" variant="tonal">
+                        הוספת חוב
+                      </v-chip>
+                    </div>
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle v-if="addition.notes" class="mt-1">
+                    {{ addition.notes }}
+                  </v-list-item-subtitle>
+
+                  <template #append>
+                    <v-chip color="error" variant="flat" class="font-weight-bold">
+                      -₪{{ addition.amount.toLocaleString() }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </div>
+
+            <!-- Debt Payments List -->
+            <div v-if="balanceDetails.debtPayments && balanceDetails.debtPayments.length > 0" class="mb-4">
+              <h4 class="text-subtitle-1 font-weight-bold mb-3">
+                <v-icon icon="mdi-cash-plus" size="small" color="success" class="ml-2" />
+                תשלומי חוב
+              </h4>
+              <v-list density="compact" class="debt-payments-list">
+                <v-list-item
+                  v-for="(payment, idx) in balanceDetails.debtPayments"
+                  :key="idx"
+                  class="payment-item rounded-lg mb-2 bg-success-lighten-5"
+                >
+                  <template #prepend>
+                    <v-icon
+                      :icon="getPaymentMethodIcon(payment.method)"
+                      :color="getPaymentMethodColor(payment.method)"
+                    />
+                  </template>
+
+                  <v-list-item-title>
+                    <div class="d-flex align-center gap-2">
+                      <span class="font-weight-bold">{{ new Intl.DateTimeFormat('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(payment.date) }}</span>
+                      <v-chip size="x-small" :color="getPaymentMethodColor(payment.method)" variant="flat">
+                        {{ getPaymentMethodLabel(payment.method) }}
+                      </v-chip>
+                    </div>
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle v-if="payment.notes" class="mt-1">
+                    {{ payment.notes }}
+                  </v-list-item-subtitle>
+
+                  <template #append>
+                    <v-chip color="success" variant="flat" class="font-weight-bold">
+                      +₪{{ payment.amount.toLocaleString() }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </div>
+
             <!-- Appointments List -->
             <div v-if="balanceDetails.appointments.length > 0">
-              <h4 class="text-subtitle-1 font-weight-bold mb-3">היסטוריית פגישות</h4>
+              <h4 class="text-subtitle-1 font-weight-bold mb-3">
+                <v-icon icon="mdi-calendar-check" size="small" color="primary" class="ml-2" />
+                היסטוריית פגישות
+              </h4>
               <v-list density="compact" class="appointments-list">
                 <v-list-item
                   v-for="(apt, idx) in balanceDetails.appointments"
@@ -465,7 +554,7 @@
             </div>
 
             <v-alert
-              v-else
+              v-else-if="!balanceDetails.debtPayments || balanceDetails.debtPayments.length === 0"
               type="info"
               variant="tonal"
               class="mt-4"
@@ -678,14 +767,123 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Debt Payment Dialog -->
+    <v-dialog v-model="showDebtPaymentDialog" max-width="500" persistent>
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 text-right section-header-clean">
+          <v-icon icon="mdi-cash-plus" size="24" style="opacity: 0.8;" />
+          <span class="text-h6">רישום תשלום חוב</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6" v-if="selectedClientForDebtPayment">
+          <div class="mb-4 pa-4 rounded" style="background-color: rgba(25, 118, 210, 0.08);">
+            <div class="text-h6 font-weight-bold mb-2">{{ selectedClientForDebtPayment.name }}</div>
+            <div class="text-body-1">
+              חוב נוכחי: <span class="font-weight-bold error--text">₪{{ Math.abs(selectedClientForDebtPayment.balance).toLocaleString() }}</span>
+            </div>
+          </div>
+
+          <v-text-field
+            v-model.number="debtPaymentForm.amount"
+            label="סכום התשלום *"
+            prepend-inner-icon="mdi-cash"
+            variant="outlined"
+            rounded="lg"
+            type="number"
+            :min="0"
+            class="mb-4"
+            autofocus
+          >
+            <template #append-inner>
+              <span class="text-body-2 text-medium-emphasis">₪</span>
+            </template>
+          </v-text-field>
+
+          <v-select
+            v-model="debtPaymentForm.method"
+            label="אמצעי תשלום *"
+            :items="[
+              { value: 'cash', title: 'מזומן', icon: 'mdi-cash' },
+              { value: 'transfer', title: 'העברה בנקאית', icon: 'mdi-bank-transfer' },
+              { value: 'credit', title: 'כרטיס אשראי', icon: 'mdi-credit-card' },
+              { value: 'check', title: 'צ\'ק', icon: 'mdi-checkbook' }
+            ]"
+            item-value="value"
+            item-title="title"
+            prepend-inner-icon="mdi-wallet"
+            variant="outlined"
+            rounded="lg"
+            class="mb-4"
+          >
+            <template #item="{ props, item }">
+              <v-list-item v-bind="props">
+                <template #prepend>
+                  <v-icon :icon="item.raw.icon" />
+                </template>
+              </v-list-item>
+            </template>
+          </v-select>
+
+          <v-textarea
+            v-model="debtPaymentForm.notes"
+            label="הערות (אופציונלי)"
+            prepend-inner-icon="mdi-note-text-outline"
+            variant="outlined"
+            rounded="lg"
+            rows="2"
+          />
+
+          <v-alert
+            v-if="debtPaymentForm.amount > 0"
+            type="info"
+            variant="tonal"
+            rounded="lg"
+            class="mt-4"
+          >
+            <div class="text-body-2">
+              <strong>יתרה חדשה:</strong>
+              ₪{{ (selectedClientForDebtPayment.balance + debtPaymentForm.amount).toLocaleString() }}
+              <span v-if="selectedClientForDebtPayment.balance + debtPaymentForm.amount >= 0" class="success--text"> (סולק / זכות)</span>
+              <span v-else class="error--text"> (עדיין חוב)</span>
+            </div>
+          </v-alert>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0">
+          <v-btn
+            color="primary"
+            rounded="xl"
+            size="large"
+            variant="elevated"
+            @click="saveDebtPayment"
+            :loading="savingDebtPayment"
+            :disabled="debtPaymentForm.amount <= 0"
+            class="flex-grow-1"
+          >
+            <v-icon icon="mdi-check" start />
+            שמור תשלום
+          </v-btn>
+          <v-btn
+            variant="outlined"
+            rounded="xl"
+            size="large"
+            @click="closeDebtPaymentDialog"
+            :disabled="savingDebtPayment"
+          >
+            ביטול
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue'
-import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore'
+import { collection, getDocs, query, where, orderBy, updateDoc, doc, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
-import type { Client, Appointment, PaymentRecord } from '@/types/manage'
+import type { Client, Appointment, PaymentRecord, PaymentMethod } from '@/types/manage'
 import { backupFirestore } from '@/utils/backup'
 import { copyProductionToTest } from '@/utils/copy-data'
 import { importBackupFiles } from '@/utils/import-data'
@@ -708,6 +906,14 @@ const monthlyAppointmentsList = ref<Appointment[]>([])
 const backingUp = ref(false)
 const copyingData = ref(false)
 const importingData = ref(false)
+const showDebtPaymentDialog = ref(false)
+const selectedClientForDebtPayment = ref<Client | null>(null)
+const savingDebtPayment = ref(false)
+const debtPaymentForm = ref({
+  amount: 0,
+  method: 'cash' as PaymentMethod,
+  notes: ''
+})
 
 // Check if we're in production environment
 const isProduction = computed(() => {
@@ -730,6 +936,17 @@ const balanceDetails = ref({
     paid: number
     balance: number
     attended: boolean
+  }>,
+  debtPayments: [] as Array<{
+    date: Date
+    amount: number
+    method: string
+    notes: string
+  }>,
+  debtAdditions: [] as Array<{
+    date: Date
+    amount: number
+    notes: string
   }>
 })
 
@@ -1108,6 +1325,53 @@ const showBalanceDetails = async (client: Client) => {
       }
     })
 
+    // Get debt payments for this client
+    const debtPaymentsQuery = query(
+      collection(db, 'debt_payments'),
+      where('clientId', '==', client.id)
+    )
+    const debtPaymentsSnapshot = await getDocs(debtPaymentsQuery)
+    const debtPaymentsList: any[] = []
+
+    debtPaymentsSnapshot.forEach(docSnap => {
+      const payment = docSnap.data()
+      const paymentAmount = payment.amount || 0
+      totalPaid += paymentAmount
+
+      debtPaymentsList.push({
+        date: payment.date?.toDate ? payment.date.toDate() : new Date(payment.date),
+        amount: paymentAmount,
+        method: payment.method || 'cash',
+        notes: payment.notes || ''
+      })
+    })
+
+    // Sort by date descending (client-side)
+    debtPaymentsList.sort((a, b) => b.date.getTime() - a.date.getTime())
+
+    // Get debt additions for this client
+    const debtAdditionsQuery = query(
+      collection(db, 'debt_additions'),
+      where('clientId', '==', client.id)
+    )
+    const debtAdditionsSnapshot = await getDocs(debtAdditionsQuery)
+    const debtAdditionsList: any[] = []
+
+    debtAdditionsSnapshot.forEach(docSnap => {
+      const addition = docSnap.data()
+      const additionAmount = addition.amount || 0
+      totalOwed += additionAmount
+
+      debtAdditionsList.push({
+        date: addition.date?.toDate ? addition.date.toDate() : new Date(addition.date),
+        amount: additionAmount,
+        notes: addition.notes || ''
+      })
+    })
+
+    // Sort by date descending (client-side)
+    debtAdditionsList.sort((a, b) => b.date.getTime() - a.date.getTime())
+
     // Sort by date descending
     appointmentsList.sort((a, b) => b.date.getTime() - a.date.getTime())
 
@@ -1115,7 +1379,9 @@ const showBalanceDetails = async (client: Client) => {
       totalOwed,
       totalPaid,
       balance: totalPaid - totalOwed,
-      appointments: appointmentsList
+      appointments: appointmentsList,
+      debtPayments: debtPaymentsList,
+      debtAdditions: debtAdditionsList
     }
   } catch (error) {
     console.error('Error loading balance details:', error)
@@ -1254,7 +1520,70 @@ const closeBalanceDialog = () => {
     totalOwed: 0,
     totalPaid: 0,
     balance: 0,
-    appointments: []
+    appointments: [],
+    debtPayments: [],
+    debtAdditions: []
+  }
+}
+
+// תשלום חוב
+const openDebtPaymentDialog = (client: Client) => {
+  selectedClientForDebtPayment.value = client
+  debtPaymentForm.value = {
+    amount: Math.abs(client.balance), // ברירת מחדל - החוב המלא
+    method: 'cash',
+    notes: ''
+  }
+  showDebtPaymentDialog.value = true
+}
+
+const saveDebtPayment = async () => {
+  if (!selectedClientForDebtPayment.value || debtPaymentForm.value.amount <= 0) {
+    alert('אנא הזן סכום תקין')
+    return
+  }
+
+  savingDebtPayment.value = true
+  try {
+    const client = selectedClientForDebtPayment.value
+    const paymentAmount = debtPaymentForm.value.amount
+
+    // שמירת התשלום ב-collection debt_payments
+    await addDoc(collection(db, 'debt_payments'), {
+      clientId: client.id,
+      clientName: client.name,
+      amount: paymentAmount,
+      method: debtPaymentForm.value.method,
+      date: Timestamp.fromDate(new Date()),
+      notes: debtPaymentForm.value.notes || '',
+      createdAt: Timestamp.fromDate(new Date())
+    })
+
+    // עדכון יתרת הלקוח (הוספת התשלום)
+    const newBalance = client.balance + paymentAmount
+    await updateDoc(doc(db, 'clients', client.id), {
+      balance: newBalance
+    })
+
+    alert(`✅ התשלום נרשם בהצלחה!\n\nסכום: ₪${paymentAmount}\nיתרה חדשה: ₪${newBalance >= 0 ? newBalance : Math.abs(newBalance)} ${newBalance >= 0 ? '(זכות)' : '(חוב)'}`)
+
+    closeDebtPaymentDialog()
+    await loadData() // רענון הנתונים
+  } catch (error) {
+    console.error('Error saving debt payment:', error)
+    alert('❌ שגיאה בשמירת התשלום')
+  } finally {
+    savingDebtPayment.value = false
+  }
+}
+
+const closeDebtPaymentDialog = () => {
+  showDebtPaymentDialog.value = false
+  selectedClientForDebtPayment.value = null
+  debtPaymentForm.value = {
+    amount: 0,
+    method: 'cash',
+    notes: ''
   }
 }
 

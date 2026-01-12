@@ -96,6 +96,18 @@
           <v-icon icon="mdi-gift-outline" size="20" />
           הפרס השבועי
         </v-tab>
+        <v-tab value="reports" class="tab-clean">
+          <v-icon icon="mdi-chart-line" size="20" />
+          דוחות חודשיים
+        </v-tab>
+        <v-tab value="expenses" class="tab-clean">
+          <v-icon icon="mdi-calculator" size="20" />
+          הוצאות
+        </v-tab>
+        <v-tab v-if="isGiftAccount" value="prize-manager" class="tab-clean">
+          <v-icon icon="mdi-gift-open" size="20" />
+          ניהול פרסים
+        </v-tab>
       </v-tabs>
 
       <!-- Tab Content -->
@@ -119,19 +131,37 @@
         <v-window-item value="prize">
           <WeeklyPrize />
         </v-window-item>
+
+        <!-- Reports Tab -->
+        <v-window-item value="reports">
+          <MonthlyReports />
+        </v-window-item>
+
+        <!-- Expenses Tab -->
+        <v-window-item value="expenses">
+          <ExpenseManager />
+        </v-window-item>
+
+        <!-- Prize Manager Tab (gift@gift.co.il only) -->
+        <v-window-item v-if="isGiftAccount" value="prize-manager">
+          <PrizeManager />
+        </v-window-item>
       </v-window>
     </div>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/firebase'
 import Dashboard from '@/components/manage/Dashboard.vue'
 import ClientsManager from '@/components/manage/ClientsManager.vue'
 import WeeklySchedule from '@/components/manage/WeeklySchedule.vue'
 import WeeklyPrize from '@/components/manage/WeeklyPrize.vue'
+import MonthlyReports from '@/components/manage/MonthlyReports.vue'
+import ExpenseManager from '@/components/manage/ExpenseManager.vue'
+import PrizeManager from '@/components/manage/PrizeManager.vue'
 
 // State
 const showLogin = ref(true)
@@ -141,6 +171,11 @@ const password = ref('')
 const loginError = ref('')
 const loading = ref(false)
 const activeTab = ref('dashboard')
+
+// Check if current user is gift account
+const isGiftAccount = computed(() => {
+  return auth.currentUser?.email === 'gift@gift.co.il'
+})
 
 // Authentication
 const handleLogin = async () => {

@@ -36,6 +36,29 @@ export interface Payment {
   notes?: string
 }
 
+// תשלום חוב עצמאי (לא קשור לפגישה)
+export interface DebtPayment {
+  id: string
+  clientId: string
+  clientName: string
+  amount: number
+  method: PaymentMethod
+  date: Date
+  notes?: string
+  createdAt: Date
+}
+
+// הוספת חוב ידנית
+export interface DebtAddition {
+  id: string
+  clientId: string
+  clientName: string
+  amount: number
+  date: Date
+  notes?: string
+  createdAt: Date
+}
+
 // Appointment Types
 export type DurationCategory = 'on-time' | 'partial' | 'overtime'
 
@@ -98,5 +121,6 @@ export interface WeeklyPrize {
   weeklyActual: number // סכום בפועל ששולם השבוע
   isUnlocked: boolean
   unlockedAt?: Date
+  availableToUnlock?: boolean // האם שוחרר ידנית על ידי המנהל (גם ללא עמידה ביעד)
 }
 

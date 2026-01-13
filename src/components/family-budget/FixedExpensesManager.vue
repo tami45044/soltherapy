@@ -28,14 +28,16 @@
     </v-row>
 
     <!-- Fixed Expenses Grid -->
-    <v-row class="d-flex justify-start">
+    <v-row>
       <v-col
         v-for="expense in sortedFixedExpenses"
         :key="expense.id"
         cols="12"
         sm="6"
-        md="4"
-        lg="2.4"
+        md="3"
+        lg="2"
+        xl="2"
+        class="fixed-expense-col"
       >
         <v-card
           rounded="xl"
@@ -47,9 +49,11 @@
             border: `2px solid ${getCategoryBorderColor(expense.category)}`,
           }"
         >
-          <v-card-text class="pa-3">
-            <div class="d-flex justify-space-between align-center mb-2">
-              <div class="text-body-2 font-weight-bold">{{ expense.name }}</div>
+          <v-card-text class="pa-2">
+            <div class="d-flex justify-space-between align-center mb-1">
+              <div class="text-caption font-weight-bold text-truncate" style="max-width: 80%;">
+                {{ expense.name }}
+              </div>
               <v-menu location="start">
                 <template #activator="{ props }">
                   <v-btn
@@ -57,6 +61,7 @@
                     size="x-small"
                     variant="text"
                     v-bind="props"
+                    density="compact"
                   />
                 </template>
                 <v-list density="compact">
@@ -87,28 +92,28 @@
               </v-menu>
             </div>
 
-            <div class="text-subtitle-1 font-weight-bold mb-2" style="color: #d32f2f;">
+            <div class="text-body-1 font-weight-bold mb-1" style="color: #d32f2f;">
               ₪{{ expense.amount.toLocaleString() }}
             </div>
 
             <v-chip
-              size="small"
+              size="x-small"
               variant="flat"
-              class="mb-2 font-weight-bold"
+              class="mb-1 font-weight-bold"
               :style="{
                 backgroundColor: getCategoryChipColor(expense.category),
                 color: 'white',
-                fontSize: '0.75rem',
+                fontSize: '0.65rem',
               }"
             >
               {{ EXPENSE_CATEGORY_LABELS[expense.category] }}
             </v-chip>
 
-            <div v-if="expense.description" class="text-caption text-medium-emphasis mt-2">
+            <div v-if="expense.description" class="text-caption text-medium-emphasis mt-1 text-truncate">
               {{ expense.description }}
             </div>
 
-            <div v-if="expense.notes" class="text-caption text-medium-emphasis mt-1" style="font-size: 0.7rem;">
+            <div v-if="expense.notes" class="text-caption text-medium-emphasis mt-1 text-truncate" style="font-size: 0.65rem;">
               {{ expense.notes }}
             </div>
 
@@ -478,14 +483,26 @@ onMounted(() => {
   opacity: 0.6;
 }
 
+.fixed-expense-col {
+  max-width: 240px;
+  min-width: 180px;
+}
+
 .fixed-expense-card {
   transition: all 0.3s ease;
   height: 100%;
+  min-height: 140px;
 }
 
 .fixed-expense-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
 

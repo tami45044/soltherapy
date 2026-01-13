@@ -13,10 +13,10 @@ export type ExpenseCategory =
   | 'property-tax' // ארנונה
   | 'electricity' // חשמל
   | 'water' // מים
-  | 'gas' // גז
   | 'insurance' // ביטוח
   | 'phone' // טלפון ואינטרנט
   | 'subscriptions' // מנויים
+  | 'donations' // תרומות
   | 'other' // אחר
 
 // סוגי הוצאות
@@ -109,10 +109,10 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   'property-tax': 'ארנונה',
   electricity: 'חשמל',
   water: 'מים',
-  gas: 'גז',
   insurance: 'ביטוח',
   phone: 'טלפון ואינטרנט',
   subscriptions: 'מנויים',
+  donations: 'תרומות',
   other: 'אחר',
 }
 
@@ -144,10 +144,10 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   'property-tax': '#4BC0C0',
   electricity: '#FFCE56',
   water: '#36A2EB',
-  gas: '#FF9F40',
   insurance: '#9966FF',
   phone: '#FF6384',
   subscriptions: '#4BC0C0',
+  donations: '#E91E63',
   other: '#C9CBCF',
 }
 

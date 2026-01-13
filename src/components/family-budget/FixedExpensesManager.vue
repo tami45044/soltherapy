@@ -28,23 +28,33 @@
     </v-row>
 
     <!-- Fixed Expenses Grid -->
-    <v-row>
+    <v-row class="d-flex justify-center">
       <v-col
-        v-for="expense in fixedExpenses"
+        v-for="expense in sortedFixedExpenses"
         :key="expense.id"
         cols="12"
-        md="6"
-        lg="4"
+        sm="6"
+        md="4"
+        lg="3"
       >
-        <v-card rounded="lg" elevation="2" :class="{ 'opacity-50': !expense.isActive }">
+        <v-card
+          rounded="xl"
+          elevation="0"
+          class="fixed-expense-card"
+          :class="{ 'opacity-50': !expense.isActive }"
+          :style="{
+            backgroundColor: getCategoryColor(expense.category),
+            border: `2px solid ${getCategoryBorderColor(expense.category)}`,
+          }"
+        >
           <v-card-text class="pa-4">
-            <div class="d-flex justify-space-between align-center mb-2">
-              <div class="text-h6 font-weight-bold">{{ expense.name }}</div>
+            <div class="d-flex justify-space-between align-center mb-3">
+              <div class="text-subtitle-1 font-weight-bold">{{ expense.name }}</div>
               <v-menu location="start">
                 <template #activator="{ props }">
                   <v-btn
                     icon="mdi-dots-vertical"
-                    size="small"
+                    size="x-small"
                     variant="text"
                     v-bind="props"
                   />
@@ -77,32 +87,35 @@
               </v-menu>
             </div>
 
-            <v-chip
-              :color="expense.isActive ? 'error' : 'grey'"
-              variant="flat"
-              size="large"
-              class="font-weight-bold mb-2"
-            >
+            <div class="text-h6 font-weight-bold mb-2" style="color: #d32f2f;">
               ₪{{ expense.amount.toLocaleString() }}
-            </v-chip>
+            </div>
 
-            <v-chip size="small" variant="tonal" class="mb-2">
+            <v-chip
+              size="x-small"
+              variant="flat"
+              class="mb-2"
+              :style="{
+                backgroundColor: getCategoryBorderColor(expense.category),
+                color: 'white',
+              }"
+            >
               {{ EXPENSE_CATEGORY_LABELS[expense.category] }}
             </v-chip>
 
-            <div v-if="expense.description" class="text-body-2 text-medium-emphasis">
+            <div v-if="expense.description" class="text-caption text-medium-emphasis mt-2">
               {{ expense.description }}
             </div>
 
-            <div v-if="expense.notes" class="text-caption text-medium-emphasis mt-2">
+            <div v-if="expense.notes" class="text-caption text-medium-emphasis mt-1" style="font-size: 0.7rem;">
               {{ expense.notes }}
             </div>
 
             <v-chip
               v-if="!expense.isActive"
-              size="small"
+              size="x-small"
               color="warning"
-              variant="tonal"
+              variant="flat"
               class="mt-2"
             >
               מושהה
@@ -241,7 +254,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import type { FixedExpenseTemplate, ExpenseCategory } from '@/types/family-budget'
-import { EXPENSE_CATEGORY_LABELS } from '@/types/family-budget'
+import { EXPENSE_CATEGORY_LABELS, CATEGORY_COLORS } from '@/types/family-budget'
 
 const fixedExpenses = ref<FixedExpenseTemplate[]>([])
 const dialog = ref(false)
@@ -277,6 +290,37 @@ const totalActiveFixedExpenses = computed(() => {
     .filter((e) => e.isActive)
     .reduce((sum, e) => sum + e.amount, 0)
 })
+
+const sortedFixedExpenses = computed(() => {
+  return [...fixedExpenses.value].sort((a, b) => {
+    // Sort by category, then by name
+    if (a.category === b.category) {
+      return a.name.localeCompare(b.name, 'he')
+    }
+    return EXPENSE_CATEGORY_LABELS[a.category].localeCompare(
+      EXPENSE_CATEGORY_LABELS[b.category],
+      'he',
+    )
+  })
+})
+
+const getCategoryColor = (category: ExpenseCategory) => {
+  const color = CATEGORY_COLORS[category]
+  // Convert hex to rgba with low opacity for soft colors
+  const r = parseInt(color.slice(1, 3), 16)
+  const g = parseInt(color.slice(3, 5), 16)
+  const b = parseInt(color.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, 0.15)`
+}
+
+const getCategoryBorderColor = (category: ExpenseCategory) => {
+  const color = CATEGORY_COLORS[category]
+  // Convert hex to rgba with medium opacity for border
+  const r = parseInt(color.slice(1, 3), 16)
+  const g = parseInt(color.slice(3, 5), 16)
+  const b = parseInt(color.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, 0.4)`
+}
 
 const loadExpenses = async () => {
   try {
@@ -421,7 +465,17 @@ onMounted(() => {
 }
 
 .opacity-50 {
-  opacity: 0.5;
+  opacity: 0.6;
+}
+
+.fixed-expense-card {
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.fixed-expense-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
 }
 </style>
 

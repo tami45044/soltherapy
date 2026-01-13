@@ -28,14 +28,14 @@
     </v-row>
 
     <!-- Fixed Expenses Grid -->
-    <v-row class="d-flex justify-center">
+    <v-row class="d-flex justify-start">
       <v-col
         v-for="expense in sortedFixedExpenses"
         :key="expense.id"
         cols="12"
         sm="6"
         md="4"
-        lg="3"
+        lg="2.4"
       >
         <v-card
           rounded="xl"
@@ -47,9 +47,9 @@
             border: `2px solid ${getCategoryBorderColor(expense.category)}`,
           }"
         >
-          <v-card-text class="pa-4">
-            <div class="d-flex justify-space-between align-center mb-3">
-              <div class="text-subtitle-1 font-weight-bold">{{ expense.name }}</div>
+          <v-card-text class="pa-3">
+            <div class="d-flex justify-space-between align-center mb-2">
+              <div class="text-body-2 font-weight-bold">{{ expense.name }}</div>
               <v-menu location="start">
                 <template #activator="{ props }">
                   <v-btn
@@ -87,17 +87,18 @@
               </v-menu>
             </div>
 
-            <div class="text-h6 font-weight-bold mb-2" style="color: #d32f2f;">
+            <div class="text-subtitle-1 font-weight-bold mb-2" style="color: #d32f2f;">
               ₪{{ expense.amount.toLocaleString() }}
             </div>
 
             <v-chip
-              size="x-small"
+              size="small"
               variant="flat"
-              class="mb-2"
+              class="mb-2 font-weight-bold"
               :style="{
-                backgroundColor: getCategoryBorderColor(expense.category),
+                backgroundColor: getCategoryChipColor(expense.category),
                 color: 'white',
+                fontSize: '0.75rem',
               }"
             >
               {{ EXPENSE_CATEGORY_LABELS[expense.category] }}
@@ -319,7 +320,16 @@ const getCategoryBorderColor = (category: ExpenseCategory) => {
   const r = parseInt(color.slice(1, 3), 16)
   const g = parseInt(color.slice(3, 5), 16)
   const b = parseInt(color.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, 0.4)`
+  return `rgba(${r}, ${g}, ${b}, 0.5)`
+}
+
+const getCategoryChipColor = (category: ExpenseCategory) => {
+  const color = CATEGORY_COLORS[category]
+  // Convert hex to rgba with higher opacity for chip
+  const r = parseInt(color.slice(1, 3), 16)
+  const g = parseInt(color.slice(3, 5), 16)
+  const b = parseInt(color.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, 0.85)`
 }
 
 const loadExpenses = async () => {

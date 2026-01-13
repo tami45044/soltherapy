@@ -96,9 +96,14 @@
       <!-- Expenses by Category -->
       <v-col cols="12" md="6">
         <v-card rounded="xl" elevation="2">
-          <v-card-title class="pa-5">
-            <v-icon icon="mdi-chart-pie" size="24" class="ml-2" />
-            <span class="text-h6">הוצאות לפי קטגוריה</span>
+          <v-card-title class="pa-5 d-flex justify-space-between align-center">
+            <div class="d-flex align-center">
+              <v-icon icon="mdi-chart-pie" size="24" class="ml-2" />
+              <span class="text-h6">הוצאות לפי קטגוריה</span>
+            </div>
+            <v-chip color="error" variant="flat" size="small">
+              סה"כ: ₪{{ totalExpenses.toLocaleString() }}
+            </v-chip>
           </v-card-title>
           <v-card-text class="pa-4" style="min-height: 300px;">
             <canvas ref="expensesByCategoryChart"></canvas>

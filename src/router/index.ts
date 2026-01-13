@@ -34,6 +34,11 @@ const router = createRouter({
       name: 'manage',
       component: () => import('../views/ManageView.vue'),
     },
+    {
+      path: '/family-budget',
+      name: 'family-budget',
+      component: () => import('../views/FamilyBudgetView.vue'),
+    },
   ],
   scrollBehavior() {
     return { top: 0 }

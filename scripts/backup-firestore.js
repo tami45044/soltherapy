@@ -2,10 +2,10 @@
 
 /**
  * Firestore Backup Script
- * 
+ *
  * Usage:
  *   node scripts/backup-firestore.js
- * 
+ *
  * This script exports all Firestore collections to JSON files
  * in the /backups directory with timestamps.
  */
@@ -37,15 +37,15 @@ const COLLECTIONS = ['clients', 'appointments', 'schedule_template', 'weekly_pri
  */
 function convertTimestamp(obj) {
   if (!obj) return obj
-  
+
   if (obj.seconds !== undefined && obj.nanoseconds !== undefined) {
     return new Date(obj.seconds * 1000).toISOString()
   }
-  
+
   if (obj instanceof Date) {
     return obj.toISOString()
   }
-  
+
   if (typeof obj === 'object' && !Array.isArray(obj)) {
     const converted = {}
     for (const [key, value] of Object.entries(obj)) {
@@ -53,11 +53,11 @@ function convertTimestamp(obj) {
     }
     return converted
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(item => convertTimestamp(item))
   }
-  
+
   return obj
 }
 
@@ -66,11 +66,11 @@ function convertTimestamp(obj) {
  */
 async function backupCollection(collectionName) {
   console.log(`📦 Backing up: ${collectionName}...`)
-  
+
   try {
     const snapshot = await getDocs(collection(db, collectionName))
     const data = []
-    
+
     snapshot.forEach(doc => {
       const docData = doc.data()
       data.push({
@@ -78,7 +78,7 @@ async function backupCollection(collectionName) {
         ...convertTimestamp(docData)
       })
     })
-    
+
     console.log(`   ✅ ${data.length} documents backed up`)
     return { collection: collectionName, count: data.length, data }
   } catch (error) {
@@ -92,31 +92,31 @@ async function backupCollection(collectionName) {
  */
 async function backup() {
   console.log('🚀 Starting Firestore backup...\n')
-  
+
   // Create backups directory if it doesn't exist
   const backupsDir = join(process.cwd(), 'backups')
   if (!existsSync(backupsDir)) {
     mkdirSync(backupsDir, { recursive: true })
   }
-  
+
   // Create timestamp for this backup
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
   const backupDir = join(backupsDir, timestamp)
   mkdirSync(backupDir, { recursive: true })
-  
+
   // Backup all collections
   const results = []
   for (const collectionName of COLLECTIONS) {
     const result = await backupCollection(collectionName)
     results.push(result)
-    
+
     // Save individual collection backup
     if (!result.error) {
       const filename = join(backupDir, `${collectionName}.json`)
       writeFileSync(filename, JSON.stringify(result.data, null, 2), 'utf-8')
     }
   }
-  
+
   // Create summary file
   const summary = {
     timestamp: new Date().toISOString(),
@@ -127,10 +127,10 @@ async function backup() {
       error: r.error || null
     }))
   }
-  
+
   const summaryFile = join(backupDir, '_summary.json')
   writeFileSync(summaryFile, JSON.stringify(summary, null, 2), 'utf-8')
-  
+
   // Print summary
   console.log('\n' + '='.repeat(50))
   console.log('✅ Backup completed!')
@@ -145,7 +145,7 @@ async function backup() {
     }
   })
   console.log('='.repeat(50))
-  
+
   process.exit(0)
 }
 

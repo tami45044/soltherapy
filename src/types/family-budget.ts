@@ -7,7 +7,7 @@ export type ExpenseCategory =
   | 'entertainment' // בילויים ופנאי
   | 'clothing' // ביגוד והנעלה
   | 'health' // בריאות ותרופות
-  | 'education' // חינוך וספרים
+  | 'education' // חינוך
   | 'shopping' // קניות ושונות
   | 'mortgage' // משכנתא
   | 'property-tax' // ארנונה
@@ -103,7 +103,7 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   entertainment: 'בילויים ופנאי',
   clothing: 'ביגוד והנעלה',
   health: 'בריאות ותרופות',
-  education: 'חינוך וספרים',
+  education: 'חינוך',
   shopping: 'קניות ושונות',
   mortgage: 'משכנתא',
   'property-tax': 'ארנונה',

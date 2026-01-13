@@ -286,23 +286,23 @@ const expensesByCategory = computed(() => {
 
 const expensesByPaymentMethod = computed(() => {
   const result: Record<string, number> = {}
-  
+
   // Add actual expenses
   expenses.value.forEach((e) => {
     if (!result[e.paymentMethod]) result[e.paymentMethod] = 0
     result[e.paymentMethod] += e.amount
   })
-  
+
   // Add active fixed expenses (they are usually standing-order)
   const fixedExpensesTotal = fixedExpenses.value
     .filter((e) => e.isActive)
     .reduce((sum, e) => sum + e.amount, 0)
-  
+
   if (fixedExpensesTotal > 0) {
     if (!result['standing-order']) result['standing-order'] = 0
     result['standing-order'] += fixedExpensesTotal
   }
-  
+
   return result
 })
 
@@ -317,11 +317,26 @@ const loadData = async () => {
       where('month', '==', selectedMonth.value),
     )
     const expensesSnapshot = await getDocs(expensesQuery)
-    expenses.value = expensesSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().date?.toDate() || new Date(),
-    })) as BudgetExpense[]
+    expenses.value = expensesSnapshot.docs.map((doc) => {
+      const data = doc.data()
+      // Handle backward compatibility: convert old 'type' to 'paymentMethod'
+      let paymentMethod = data.paymentMethod
+      if (!paymentMethod && data.type) {
+        // Map old types to new payment methods
+        const typeMap: Record<string, string> = {
+          cash: 'cash',
+          fixed: 'standing-order',
+          variable: 'credit',
+        }
+        paymentMethod = typeMap[data.type] || 'credit'
+      }
+      return {
+        id: doc.id,
+        ...data,
+        paymentMethod: paymentMethod || 'credit',
+        date: data.date?.toDate() || new Date(),
+      }
+    }) as BudgetExpense[]
 
     // Load income
     const incomeQuery = query(

@@ -230,11 +230,25 @@ const loadData = async () => {
   try {
     // Load all expenses
     const expensesSnapshot = await getDocs(collection(db, 'familyBudgetExpenses'))
-    const expenses = expensesSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().date?.toDate() || new Date(),
-    })) as BudgetExpense[]
+    const expenses = expensesSnapshot.docs.map((doc) => {
+      const data = doc.data()
+      // Handle backward compatibility: convert old 'type' to 'paymentMethod'
+      let paymentMethod = data.paymentMethod
+      if (!paymentMethod && data.type) {
+        const typeMap: Record<string, string> = {
+          cash: 'cash',
+          fixed: 'standing-order',
+          variable: 'credit',
+        }
+        paymentMethod = typeMap[data.type] || 'credit'
+      }
+      return {
+        id: doc.id,
+        ...data,
+        paymentMethod: paymentMethod || 'credit',
+        date: data.date?.toDate() || new Date(),
+      } as BudgetExpense
+    })
 
     // Load all income
     const incomeSnapshot = await getDocs(collection(db, 'familyBudgetIncome'))
@@ -306,7 +320,7 @@ const loadData = async () => {
         }
         expensesByPaymentMethod[e.paymentMethod] += e.amount
       })
-      
+
       // Add fixed expenses to standing-order
       if (fixedExpensesTotal > 0) {
         if (!expensesByPaymentMethod['standing-order']) {

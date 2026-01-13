@@ -24,6 +24,19 @@
           @update:model-value="loadData"
         />
       </v-col>
+      <v-col cols="12" md="2">
+        <v-btn
+          color="primary"
+          size="large"
+          block
+          rounded="lg"
+          @click="loadData"
+          :loading="loading"
+        >
+          <v-icon icon="mdi-refresh" start />
+          רענן
+        </v-btn>
+      </v-col>
     </v-row>
 
     <!-- Summary Cards -->
@@ -215,6 +228,7 @@ const selectedMonth = ref('')
 const expenses = ref<BudgetExpense[]>([])
 const income = ref<BudgetIncome[]>([])
 const fixedExpenses = ref<any[]>([])
+const loading = ref(false)
 const expensesByCategoryChart = ref<HTMLCanvasElement | null>(null)
 const expensesByTypeChart = ref<HTMLCanvasElement | null>(null)
 let categoryChartInstance: Chart | null = null
@@ -295,6 +309,7 @@ const expensesByType = computed(() => {
 const loadData = async () => {
   if (!selectedMonth.value) return
 
+  loading.value = true
   try {
     // Load expenses
     const expensesQuery = query(
@@ -331,6 +346,8 @@ const loadData = async () => {
     renderCharts()
   } catch (error) {
     console.error('Error loading data:', error)
+  } finally {
+    loading.value = false
   }
 }
 

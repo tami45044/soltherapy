@@ -29,9 +29,9 @@
           </v-col>
           <v-col cols="12" md="3">
             <v-select
-              v-model="filters.type"
-              label="סוג הוצאה"
-              :items="expenseTypeOptions"
+              v-model="filters.paymentMethod"
+              label="אמצעי תשלום"
+              :items="paymentMethodOptions"
               variant="outlined"
               rounded="lg"
               clearable
@@ -94,9 +94,9 @@
             </v-chip>
           </template>
 
-          <template #item.type="{ item }">
+          <template #item.paymentMethod="{ item }">
             <v-chip size="small" variant="tonal">
-              {{ EXPENSE_TYPE_LABELS[item.type] }}
+              {{ PAYMENT_METHOD_LABELS[item.paymentMethod] }}
             </v-chip>
           </template>
 
@@ -166,9 +166,9 @@
               </v-col>
               <v-col cols="12" md="6">
                 <v-select
-                  v-model="editedExpense.type"
-                  label="סוג הוצאה"
-                  :items="expenseTypeOptions"
+                  v-model="editedExpense.paymentMethod"
+                  label="אמצעי תשלום"
+                  :items="paymentMethodOptions"
                   variant="outlined"
                   rounded="lg"
                   :rules="[required]"
@@ -228,7 +228,7 @@ import { ref, computed, onMounted } from 'vue'
 import { db } from '@/firebase'
 import { collection, getDocs, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore'
 import type { BudgetExpense } from '@/types/family-budget'
-import { EXPENSE_CATEGORY_LABELS, EXPENSE_TYPE_LABELS } from '@/types/family-budget'
+import { EXPENSE_CATEGORY_LABELS, PAYMENT_METHOD_LABELS } from '@/types/family-budget'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -242,7 +242,7 @@ const snackbarColor = ref('success')
 
 const filters = ref({
   month: '',
-  type: null,
+  paymentMethod: null,
   category: null,
   search: '',
 })
@@ -250,7 +250,7 @@ const filters = ref({
 const headers = [
   { title: 'תאריך', key: 'date', sortable: true },
   { title: 'סכום', key: 'amount', sortable: true },
-  { title: 'סוג', key: 'type', sortable: true },
+  { title: 'אמצעי תשלום', key: 'paymentMethod', sortable: true },
   { title: 'קטגוריה', key: 'category', sortable: true },
   { title: 'תיאור', key: 'description', sortable: false },
   { title: 'הערות', key: 'notes', sortable: false },
@@ -260,8 +260,8 @@ const headers = [
 const required = (v: any) => !!v || 'שדה חובה'
 const positiveNumber = (v: number) => v > 0 || 'הסכום חייב להיות חיובי'
 
-const expenseTypeOptions = computed(() =>
-  Object.entries(EXPENSE_TYPE_LABELS).map(([value, label]) => ({
+const paymentMethodOptions = computed(() =>
+  Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => ({
     value,
     title: label,
   })),
@@ -281,8 +281,8 @@ const filteredExpenses = computed(() => {
     result = result.filter((e) => e.month === filters.value.month)
   }
 
-  if (filters.value.type) {
-    result = result.filter((e) => e.type === filters.value.type)
+  if (filters.value.paymentMethod) {
+    result = result.filter((e) => e.paymentMethod === filters.value.paymentMethod)
   }
 
   if (filters.value.category) {
@@ -350,9 +350,8 @@ const saveExpense = async () => {
 
     const updateData: any = {
       amount: editedExpense.value.amount,
-      type: editedExpense.value.type,
+      paymentMethod: editedExpense.value.paymentMethod,
       category: editedExpense.value.category,
-      description: editedExpense.value.description,
       date: Timestamp.fromDate(date),
       month,
     }

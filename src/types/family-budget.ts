@@ -19,11 +19,12 @@ export type ExpenseCategory =
   | 'donations' // תרומות
   | 'other' // אחר
 
-// סוגי הוצאות
-export type ExpenseType =
+// אמצעי תשלום
+export type PaymentMethod =
+  | 'credit' // אשראי
   | 'cash' // מזומן
-  | 'fixed' // קבועה (בנק/אשראי)
-  | 'variable' // משתנה (בנק/אשראי)
+  | 'standing-order' // הוראת קבע
+  | 'bank-transfer' // העברה בנקאית
 
 // קטגוריות הכנסות
 export type IncomeCategory =
@@ -39,8 +40,8 @@ export interface BudgetExpense {
   id: string
   amount: number
   category: ExpenseCategory
-  type: ExpenseType
-  description: string
+  paymentMethod: PaymentMethod
+  description?: string
   date: Date
   month: string // YYYY-MM
   notes?: string
@@ -79,7 +80,7 @@ export interface MonthlyBudgetSummary {
   totalExpenses: number
   balance: number // הפרש (הכנסות - הוצאות)
   expensesByCategory: Record<ExpenseCategory, number>
-  expensesByType: Record<ExpenseType, number>
+  expensesByPaymentMethod: Record<PaymentMethod, number>
   incomeByCategory: Record<IncomeCategory, number>
 }
 
@@ -116,10 +117,11 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   other: 'אחר',
 }
 
-export const EXPENSE_TYPE_LABELS: Record<ExpenseType, string> = {
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  credit: 'אשראי',
   cash: 'מזומן',
-  fixed: 'קבועה',
-  variable: 'משתנה',
+  'standing-order': 'הוראת קבע',
+  'bank-transfer': 'העברה בנקאית',
 }
 
 export const INCOME_CATEGORY_LABELS: Record<IncomeCategory, string> = {

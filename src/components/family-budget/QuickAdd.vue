@@ -72,12 +72,12 @@
               />
             </v-col>
 
-            <!-- Type -->
+            <!-- Payment Method -->
             <v-col cols="12" md="6">
               <v-select
-                v-model="expense.type"
-                label="סוג הוצאה *"
-                :items="expenseTypes"
+                v-model="expense.paymentMethod"
+                label="אמצעי תשלום *"
+                :items="paymentMethods"
                 item-title="label"
                 item-value="value"
                 variant="outlined"
@@ -249,13 +249,13 @@ import { collection, addDoc, Timestamp } from 'firebase/firestore'
 import type {
   BudgetExpense,
   BudgetIncome,
-  ExpenseType,
+  PaymentMethod,
   ExpenseCategory,
   IncomeCategory,
 } from '@/types/family-budget'
 import {
   EXPENSE_CATEGORY_LABELS,
-  EXPENSE_TYPE_LABELS,
+  PAYMENT_METHOD_LABELS,
   INCOME_CATEGORY_LABELS,
 } from '@/types/family-budget'
 
@@ -278,7 +278,7 @@ const getTodayDate = () => {
 // Expense form data
 const expense = ref({
   amount: 0,
-  type: 'cash' as ExpenseType,
+  paymentMethod: 'credit' as PaymentMethod,
   category: 'food' as ExpenseCategory,
   description: '',
   date: getTodayDate(),
@@ -298,9 +298,9 @@ const income = ref({
 const required = (v: any) => !!v || 'שדה חובה'
 const positiveNumber = (v: number) => v > 0 || 'הסכום חייב להיות חיובי'
 
-// Expense types for select
-const expenseTypes = computed(() =>
-  Object.entries(EXPENSE_TYPE_LABELS).map(([value, label]) => ({
+// Payment methods for select
+const paymentMethods = computed(() =>
+  Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => ({
     value,
     label,
   })),
@@ -335,7 +335,7 @@ const addExpense = async () => {
 
     const expenseData: any = {
       amount: expense.value.amount,
-      type: expense.value.type,
+      paymentMethod: expense.value.paymentMethod,
       category: expense.value.category,
       date: Timestamp.fromDate(date),
       month,
@@ -361,7 +361,7 @@ const addExpense = async () => {
     // Reset form
     expense.value = {
       amount: 0,
-      type: 'cash',
+      paymentMethod: 'credit',
       category: 'food',
       description: '',
       date: getTodayDate(),

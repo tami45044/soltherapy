@@ -124,15 +124,15 @@
         </v-card>
       </v-col>
 
-      <!-- Expenses by Type -->
+      <!-- Expenses by Payment Method -->
       <v-col cols="12" md="6">
         <v-card rounded="xl" elevation="2">
           <v-card-title class="pa-5">
             <v-icon icon="mdi-chart-donut" size="24" class="ml-2" />
-            <span class="text-h6">הוצאות לפי סוג</span>
+            <span class="text-h6">הוצאות לפי אמצעי תשלום</span>
           </v-card-title>
           <v-card-text class="pa-4" style="min-height: 300px;">
-            <canvas ref="expensesByTypeChart"></canvas>
+            <canvas ref="expensesByPaymentMethodChart"></canvas>
           </v-card-text>
         </v-card>
       </v-col>
@@ -215,7 +215,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore'
 import type { BudgetExpense, BudgetIncome } from '@/types/family-budget'
 import {
   EXPENSE_CATEGORY_LABELS,
-  EXPENSE_TYPE_LABELS,
+  PAYMENT_METHOD_LABELS,
   CATEGORY_COLORS,
 } from '@/types/family-budget'
 import { Chart, registerables } from 'chart.js'
@@ -230,9 +230,9 @@ const income = ref<BudgetIncome[]>([])
 const fixedExpenses = ref<any[]>([])
 const loading = ref(false)
 const expensesByCategoryChart = ref<HTMLCanvasElement | null>(null)
-const expensesByTypeChart = ref<HTMLCanvasElement | null>(null)
+const expensesByPaymentMethodChart = ref<HTMLCanvasElement | null>(null)
 let categoryChartInstance: Chart | null = null
-let typeChartInstance: Chart | null = null
+let paymentMethodChartInstance: Chart | null = null
 
 const getCurrentMonth = () => {
   const now = new Date()
@@ -284,25 +284,25 @@ const expensesByCategory = computed(() => {
   return result
 })
 
-const expensesByType = computed(() => {
+const expensesByPaymentMethod = computed(() => {
   const result: Record<string, number> = {}
-
+  
   // Add actual expenses
   expenses.value.forEach((e) => {
-    if (!result[e.type]) result[e.type] = 0
-    result[e.type] += e.amount
+    if (!result[e.paymentMethod]) result[e.paymentMethod] = 0
+    result[e.paymentMethod] += e.amount
   })
-
-  // Add active fixed expenses (they are always 'fixed' type)
+  
+  // Add active fixed expenses (they are usually standing-order)
   const fixedExpensesTotal = fixedExpenses.value
     .filter((e) => e.isActive)
     .reduce((sum, e) => sum + e.amount, 0)
-
+  
   if (fixedExpensesTotal > 0) {
-    if (!result['fixed']) result['fixed'] = 0
-    result['fixed'] += fixedExpensesTotal
+    if (!result['standing-order']) result['standing-order'] = 0
+    result['standing-order'] += fixedExpensesTotal
   }
-
+  
   return result
 })
 
@@ -386,24 +386,24 @@ const renderCharts = () => {
     })
   }
 
-  // Expenses by Type Chart
-  if (expensesByTypeChart.value) {
-    if (typeChartInstance) {
-      typeChartInstance.destroy()
+  // Expenses by Payment Method Chart
+  if (expensesByPaymentMethodChart.value) {
+    if (paymentMethodChartInstance) {
+      paymentMethodChartInstance.destroy()
     }
 
-    const typeData = expensesByType.value
-    const labels = Object.keys(typeData).map((k) => EXPENSE_TYPE_LABELS[k as any])
-    const data = Object.values(typeData)
+    const paymentMethodData = expensesByPaymentMethod.value
+    const labels = Object.keys(paymentMethodData).map((k) => PAYMENT_METHOD_LABELS[k as any])
+    const data = Object.values(paymentMethodData)
 
-    typeChartInstance = new Chart(expensesByTypeChart.value, {
+    paymentMethodChartInstance = new Chart(expensesByPaymentMethodChart.value, {
       type: 'doughnut',
       data: {
         labels,
         datasets: [
           {
             data,
-            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
           },
         ],
       },

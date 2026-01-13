@@ -175,19 +175,19 @@
             </v-list>
           </div>
 
-          <!-- Expenses by Type -->
+          <!-- Expenses by Payment Method -->
           <div>
-            <h3 class="text-h6 mb-3">פירוט הוצאות לפי סוג</h3>
+            <h3 class="text-h6 mb-3">פירוט הוצאות לפי אמצעי תשלום</h3>
             <v-list density="compact">
               <v-list-item
-                v-for="(amount, type) in selectedMonthDetails.expensesByType"
-                :key="type"
+                v-for="(amount, paymentMethod) in selectedMonthDetails.expensesByPaymentMethod"
+                :key="paymentMethod"
               >
                 <template #prepend>
                   <v-icon icon="mdi-circle" size="small" color="success" />
                 </template>
                 <v-list-item-title>
-                  {{ EXPENSE_TYPE_LABELS[type] }}
+                  {{ PAYMENT_METHOD_LABELS[paymentMethod] }}
                 </v-list-item-title>
                 <template #append>
                   <v-chip size="small" color="error" variant="tonal">
@@ -218,7 +218,7 @@ import type {
   MonthlyBudgetSummary,
   ExpenseCategory,
 } from '@/types/family-budget'
-import { EXPENSE_CATEGORY_LABELS, EXPENSE_TYPE_LABELS } from '@/types/family-budget'
+import { EXPENSE_CATEGORY_LABELS, PAYMENT_METHOD_LABELS } from '@/types/family-budget'
 
 const loading = ref(false)
 const monthlySummaries = ref<MonthlyBudgetSummary[]>([])
@@ -299,13 +299,21 @@ const loadData = async () => {
         expensesByCategory[e.category] += e.amount
       })
 
-      const expensesByType: any = {}
+      const expensesByPaymentMethod: any = {}
       data.expenses.forEach((e) => {
-        if (!expensesByType[e.type]) {
-          expensesByType[e.type] = 0
+        if (!expensesByPaymentMethod[e.paymentMethod]) {
+          expensesByPaymentMethod[e.paymentMethod] = 0
         }
-        expensesByType[e.type] += e.amount
+        expensesByPaymentMethod[e.paymentMethod] += e.amount
       })
+      
+      // Add fixed expenses to standing-order
+      if (fixedExpensesTotal > 0) {
+        if (!expensesByPaymentMethod['standing-order']) {
+          expensesByPaymentMethod['standing-order'] = 0
+        }
+        expensesByPaymentMethod['standing-order'] += fixedExpensesTotal
+      }
 
       const incomeByCategory: any = {}
       data.income.forEach((i) => {
@@ -328,7 +336,7 @@ const loadData = async () => {
         totalExpenses,
         balance: totalIncome - totalExpenses,
         expensesByCategory,
-        expensesByType,
+        expensesByPaymentMethod,
         incomeByCategory,
       })
     })

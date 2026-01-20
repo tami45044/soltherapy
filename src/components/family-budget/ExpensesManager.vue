@@ -1,12 +1,12 @@
 <template>
   <v-container>
-    <v-row class="mb-4">
+    <v-row class="mb-3">
       <v-col cols="12">
-        <h2 class="text-h4 font-weight-bold mb-2">
-          <v-icon icon="mdi-cash-minus" size="32" color="error" />
+        <h2 class="text-h5 font-weight-bold mb-1">
+          <v-icon icon="mdi-cash-minus" size="24" color="error" />
           ניהול הוצאות
         </h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
+        <p class="text-body-2 text-medium-emphasis">
           צפייה ועריכת כל ההוצאות
         </p>
       </v-col>

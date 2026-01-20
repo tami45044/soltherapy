@@ -1,12 +1,12 @@
 <template>
   <v-container>
-    <v-row class="mb-4">
+    <v-row class="mb-3">
       <v-col cols="12">
-        <h2 class="text-h4 font-weight-bold mb-2">
-          <v-icon icon="mdi-cash-plus" size="32" color="success" />
+        <h2 class="text-h5 font-weight-bold mb-1">
+          <v-icon icon="mdi-cash-plus" size="24" color="success" />
           ניהול הכנסות
         </h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
+        <p class="text-body-2 text-medium-emphasis">
           צפייה ועריכת כל ההכנסות
         </p>
       </v-col>

@@ -770,22 +770,26 @@ const calculateWeeklyStats = async () => {
 
       // Count group appointments - ONE appointment per group (not per participant!)
       if (appointment.isGroup && appointment.groupParticipants && Array.isArray(appointment.groupParticipants)) {
-        // Count as ONE appointment for the group
-        totalAppointments++
+        // קבוצה נספרת רק אם לפחות אחד הגיע
+        const hasAnyAttended = appointment.groupParticipants.some((p: any) => p.attended)
+        if (hasAnyAttended) {
+          // Count as ONE appointment for the group
+          totalAppointments++
 
-        // But count revenue and payments per attended participant
-        appointment.groupParticipants.forEach((p: any) => {
-          if (p.attended) {
-            totalRevenue += appointment.groupPrice || 0
+          // Count revenue and payments per attended participant
+          appointment.groupParticipants.forEach((p: any) => {
+            if (p.attended) {
+              totalRevenue += appointment.groupPrice || 0
 
-            // Sum participant payments
-            if (p.payments && Array.isArray(p.payments)) {
-              p.payments.forEach((payment: any) => {
-                totalPaid += payment.amount || 0
-              })
+              // Sum participant payments
+              if (p.payments && Array.isArray(p.payments)) {
+                p.payments.forEach((payment: any) => {
+                  totalPaid += payment.amount || 0
+                })
+              }
             }
-          }
-        })
+          })
+        }
       }
     })
 

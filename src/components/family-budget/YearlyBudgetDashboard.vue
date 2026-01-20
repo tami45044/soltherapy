@@ -1,12 +1,12 @@
 <template>
   <v-container>
-    <v-row class="mb-4">
+    <v-row class="mb-3">
       <v-col cols="12">
-        <h2 class="text-h4 font-weight-bold mb-2">
-          <v-icon icon="mdi-calendar-range" size="32" color="primary" />
+        <h2 class="text-h5 font-weight-bold mb-1">
+          <v-icon icon="mdi-calendar-range" size="24" color="primary" />
           סיכום שנתי
         </h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
+        <p class="text-body-2 text-medium-emphasis">
           צפה בנתונים שנתיים וגרפים מפורטים
         </p>
       </v-col>
@@ -33,24 +33,24 @@
     <v-row v-if="!loading && yearlySummary">
       <v-col cols="12" md="3">
         <v-card rounded="xl" elevation="3" color="green-lighten-5">
-          <v-card-text class="pa-5">
-            <v-icon icon="mdi-cash-plus" size="40" color="success" class="mb-2" />
-            <div class="text-h5 font-weight-bold">
+          <v-card-text class="pa-4">
+            <v-icon icon="mdi-cash-plus" size="32" color="success" class="mb-2" />
+            <div class="text-h6 font-weight-bold">
               ₪{{ yearlySummary.totalIncome.toLocaleString() }}
             </div>
-            <div class="text-body-2 text-medium-emphasis">סה"כ הכנסות {{ selectedYear }}</div>
+            <div class="text-caption text-medium-emphasis">סה"כ הכנסות {{ selectedYear }}</div>
           </v-card-text>
         </v-card>
       </v-col>
 
       <v-col cols="12" md="3">
         <v-card rounded="xl" elevation="3" color="red-lighten-5">
-          <v-card-text class="pa-5">
-            <v-icon icon="mdi-cash-minus" size="40" color="error" class="mb-2" />
-            <div class="text-h5 font-weight-bold">
+          <v-card-text class="pa-4">
+            <v-icon icon="mdi-cash-minus" size="32" color="error" class="mb-2" />
+            <div class="text-h6 font-weight-bold">
               ₪{{ yearlySummary.totalExpenses.toLocaleString() }}
             </div>
-            <div class="text-body-2 text-medium-emphasis">סה"כ הוצאות {{ selectedYear }}</div>
+            <div class="text-caption text-medium-emphasis">סה"כ הוצאות {{ selectedYear }}</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -61,17 +61,17 @@
           elevation="3"
           :color="yearlySummary.balance >= 0 ? 'blue-lighten-5' : 'orange-lighten-5'"
         >
-          <v-card-text class="pa-5">
+          <v-card-text class="pa-4">
             <v-icon
               :icon="yearlySummary.balance >= 0 ? 'mdi-trending-up' : 'mdi-trending-down'"
-              size="40"
+              size="32"
               :color="yearlySummary.balance >= 0 ? 'primary' : 'warning'"
               class="mb-2"
             />
-            <div class="text-h5 font-weight-bold">
+            <div class="text-h6 font-weight-bold">
               ₪{{ Math.abs(yearlySummary.balance).toLocaleString() }}
             </div>
-            <div class="text-body-2 text-medium-emphasis">
+            <div class="text-caption text-medium-emphasis">
               {{ yearlySummary.balance >= 0 ? 'עודף' : 'גירעון' }} שנתי
             </div>
           </v-card-text>
@@ -80,12 +80,12 @@
 
       <v-col cols="12" md="3">
         <v-card rounded="xl" elevation="3" color="purple-lighten-5">
-          <v-card-text class="pa-5">
-            <v-icon icon="mdi-chart-bar" size="40" color="purple" class="mb-2" />
-            <div class="text-h5 font-weight-bold">
+          <v-card-text class="pa-4">
+            <v-icon icon="mdi-chart-bar" size="32" color="purple" class="mb-2" />
+            <div class="text-h6 font-weight-bold">
               ₪{{ yearlySummary.avgMonthlyExpenses.toLocaleString() }}
             </div>
-            <div class="text-body-2 text-medium-emphasis">ממוצע הוצאות חודשי</div>
+            <div class="text-caption text-medium-emphasis">ממוצע הוצאות חודשי</div>
           </v-card-text>
         </v-card>
       </v-col>

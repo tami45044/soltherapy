@@ -1,17 +1,17 @@
 <template>
   <v-container fluid class="family-budget-container pa-0">
     <!-- Login Screen -->
-    <v-dialog v-model="showLogin" persistent max-width="500">
+    <v-dialog v-model="showLogin" persistent max-width="450">
       <v-card class="login-card" rounded="xl" elevation="8">
-        <v-card-title class="text-center pa-8">
+        <v-card-title class="text-center pa-6">
           <div class="w-100">
-            <v-icon icon="mdi-home-analytics" size="64" color="primary" class="mb-4" />
-            <h2 class="text-h4 mb-2">תקציב משפחתי</h2>
-            <p class="text-subtitle-1 text-medium-emphasis">הכנס סיסמא לכניסה</p>
+            <v-icon icon="mdi-home-analytics" size="48" color="primary" class="mb-3" />
+            <h2 class="text-h5 mb-1">תקציב משפחתי</h2>
+            <p class="text-body-2 text-medium-emphasis">הכנס סיסמא לכניסה</p>
           </div>
         </v-card-title>
 
-        <v-card-text class="px-8 pb-8">
+        <v-card-text class="px-6 pb-6">
           <v-form @submit.prevent="handleLogin">
             <v-text-field
               v-model="email"
@@ -40,14 +40,13 @@
             <v-btn
               type="submit"
               color="primary"
-              size="large"
               rounded="xl"
               block
               elevation="4"
               :loading="loading"
               class="mt-4"
             >
-              <v-icon icon="mdi-login" start />
+              <v-icon icon="mdi-login" start size="small" />
               כניסה
             </v-btn>
           </v-form>
@@ -58,15 +57,15 @@
     <!-- Main Family Budget Interface -->
     <div v-if="isAuthenticated" class="family-budget-main">
       <!-- Top App Bar -->
-      <v-app-bar color="green-lighten-5" elevation="1" height="80">
+      <v-app-bar color="green-lighten-5" elevation="1" height="64">
         <v-container class="d-flex align-center">
-          <v-icon icon="mdi-home-analytics" size="40" style="color: #66BB6A;" />
+          <v-icon icon="mdi-home-analytics" size="32" style="color: #66BB6A;" />
           <div>
-            <h1 class="text-h5" style="color: #2E7D32; font-weight: 600;">תקציב משפחתי</h1>
-            <p class="text-caption" style="color: #66BB6A;">ניהול הוצאות והכנסות של הבית</p>
+            <h1 class="text-subtitle-1 font-weight-bold" style="color: #2E7D32;">תקציב משפחתי</h1>
+            <p class="text-caption" style="color: #66BB6A; font-size: 0.65rem;">ניהול הוצאות והכנסות של הבית</p>
           </div>
           <v-spacer />
-          <v-btn icon="mdi-logout-variant" variant="text" @click="handleLogout" style="color: #43A047;" />
+          <v-btn icon="mdi-logout-variant" size="small" variant="text" @click="handleLogout" style="color: #43A047;" />
         </v-container>
       </v-app-bar>
 
@@ -79,33 +78,34 @@
         class="tabs-clean elevation-1"
         direction="horizontal"
         slider-color="green-darken-2"
+        height="44"
       >
-        <v-tab value="dashboard" class="tab-clean">
-          <v-icon icon="mdi-view-dashboard-outline" size="20" />
+        <v-tab value="dashboard" class="tab-clean text-caption">
+          <v-icon icon="mdi-view-dashboard-outline" size="18" />
           דשבורד
         </v-tab>
-        <v-tab value="quick-add" class="tab-clean">
-          <v-icon icon="mdi-lightning-bolt" size="20" />
+        <v-tab value="quick-add" class="tab-clean text-caption">
+          <v-icon icon="mdi-lightning-bolt" size="18" />
           הזנה מהירה
         </v-tab>
-        <v-tab value="expenses" class="tab-clean">
-          <v-icon icon="mdi-cash-minus" size="20" />
+        <v-tab value="expenses" class="tab-clean text-caption">
+          <v-icon icon="mdi-cash-minus" size="18" />
           הוצאות
         </v-tab>
-        <v-tab value="income" class="tab-clean">
-          <v-icon icon="mdi-cash-plus" size="20" />
+        <v-tab value="income" class="tab-clean text-caption">
+          <v-icon icon="mdi-cash-plus" size="18" />
           הכנסות
         </v-tab>
-        <v-tab value="monthly" class="tab-clean">
-          <v-icon icon="mdi-calendar-month" size="20" />
+        <v-tab value="monthly" class="tab-clean text-caption">
+          <v-icon icon="mdi-calendar-month" size="18" />
           סיכום חודשי
         </v-tab>
-        <v-tab value="yearly" class="tab-clean">
-          <v-icon icon="mdi-calendar-range" size="20" />
+        <v-tab value="yearly" class="tab-clean text-caption">
+          <v-icon icon="mdi-calendar-range" size="18" />
           סיכום שנתי
         </v-tab>
-        <v-tab value="fixed-expenses" class="tab-clean">
-          <v-icon icon="mdi-calendar-sync" size="20" />
+        <v-tab value="fixed-expenses" class="tab-clean text-caption">
+          <v-icon icon="mdi-calendar-sync" size="18" />
           הוצאות קבועות
         </v-tab>
       </v-tabs>

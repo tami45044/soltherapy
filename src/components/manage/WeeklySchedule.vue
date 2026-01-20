@@ -624,6 +624,57 @@
                 </template>
               </v-switch>
 
+              <!-- מתג תשלום מהיר -->
+              <v-switch
+                v-model="quickPaymentToggle"
+                label="שילם"
+                color="primary"
+                hide-details
+                class="mb-4"
+                @update:model-value="handleQuickPaymentToggle"
+              >
+                <template #prepend>
+                  <v-icon icon="mdi-cash-check" color="primary" />
+                </template>
+              </v-switch>
+
+              <!-- עריכת תשלום מהיר -->
+              <v-card v-if="quickPaymentToggle" rounded="lg" variant="elevated" color="blue-lighten-4" elevation="2" class="mb-4">
+                <v-card-text class="pa-4">
+                  <div class="text-caption font-weight-bold mb-3" style="color: #1565C0;">
+                    <v-icon icon="mdi-cash-fast" size="small" class="ml-1" />
+                    תשלום מהיר
+                  </div>
+                  <v-row>
+                    <v-col cols="6">
+                      <v-text-field
+                        v-model.number="quickPayment.amount"
+                        label="סכום"
+                        type="number"
+                        variant="outlined"
+                        rounded="lg"
+                        density="compact"
+                        prefix="₪"
+                        hide-details
+                        bg-color="white"
+                      />
+                    </v-col>
+                    <v-col cols="6">
+                      <v-select
+                        v-model="quickPayment.method"
+                        label="אמצעי תשלום"
+                        :items="paymentMethodOptions"
+                        variant="outlined"
+                        rounded="lg"
+                        density="compact"
+                        hide-details
+                        bg-color="white"
+                      />
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
+
               <!-- סיכום פגישה (רק אם הגיע) -->
               <div v-if="appointmentForm.attended" class="mt-6">
                 <v-divider class="mb-4" />
@@ -1193,7 +1244,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where, orderBy as firestoreOrderBy } from 'firebase/firestore'
 import { db, auth } from '@/firebase'
 import type { Client, Appointment, ScheduleSlot } from '@/types/manage'
@@ -1248,6 +1299,12 @@ const sessionSummary = ref({
   notes: ''
 })
 
+const quickPaymentToggle = ref(false)
+const quickPayment = ref({
+  amount: 0,
+  method: 'cash' as 'cash' | 'transfer' | 'credit' | 'check'
+})
+
 const newPayment = ref({
   amount: 0,
   method: 'cash' as 'cash' | 'transfer' | 'credit' | 'check',
@@ -1285,6 +1342,13 @@ const snackbar = ref({
   message: '',
   color: 'success'
 })
+
+const paymentMethodOptions = [
+  { title: 'מזומן', value: 'cash' },
+  { title: 'העברה בנקאית', value: 'transfer' },
+  { title: 'אשראי', value: 'credit' },
+  { title: 'צ\'ק', value: 'check' }
+]
 
 // Constants
 const hebrewDays = [
@@ -1482,6 +1546,43 @@ function formatPaymentDateWithYear(date: Date): string {
     year: 'numeric'
   }).format(date)
 }
+
+// Handle quick payment toggle
+const handleQuickPaymentToggle = (value: boolean) => {
+  if (value) {
+    // מפעילים את המתג - מוסיפים תשלום חדש
+    quickPayment.value.amount = appointmentForm.value.price
+    quickPayment.value.method = 'cash'
+    
+    // מוסיפים את התשלום לרשימת התשלומים
+    const newQuickPayment = {
+      id: `quick_payment_${Date.now()}`,
+      amount: quickPayment.value.amount,
+      method: quickPayment.value.method,
+      date: new Date(),
+      notes: 'תשלום מהיר'
+    }
+    payments.value.push(newQuickPayment)
+  } else {
+    // מכבים את המתג - מסירים את התשלום המהיר
+    const quickPaymentIndex = payments.value.findIndex(p => p.notes === 'תשלום מהיר')
+    if (quickPaymentIndex !== -1) {
+      payments.value.splice(quickPaymentIndex, 1)
+    }
+  }
+}
+
+// Watch for changes in quick payment amount or method
+watch([() => quickPayment.value.amount, () => quickPayment.value.method], () => {
+  if (quickPaymentToggle.value) {
+    // עדכון התשלום המהיר
+    const quickPaymentIndex = payments.value.findIndex(p => p.notes === 'תשלום מהיר')
+    if (quickPaymentIndex !== -1) {
+      payments.value[quickPaymentIndex].amount = quickPayment.value.amount
+      payments.value[quickPaymentIndex].method = quickPayment.value.method
+    }
+  }
+})
 
 function isSameDay(date1: Date, date2: Date): boolean {
   const d1 = new Date(date1)
@@ -2609,6 +2710,18 @@ const openAppointmentDialog = (date: Date, time: string) => {
       calculateDuration()
     }
 
+    // Check for quick payment
+    const quickPaymentItem = payments.value.find(p => p.notes === 'תשלום מהיר')
+    if (quickPaymentItem) {
+      quickPaymentToggle.value = true
+      quickPayment.value.amount = quickPaymentItem.amount
+      quickPayment.value.method = quickPaymentItem.method
+    } else {
+      quickPaymentToggle.value = false
+      quickPayment.value.amount = priceToUse
+      quickPayment.value.method = 'cash'
+    }
+
     console.log('📋 Loaded session summary:', sessionSummary.value)
   } else {
     selectedAppointment.value = null
@@ -2625,6 +2738,11 @@ const openAppointmentDialog = (date: Date, time: string) => {
       groupParticipantIds: []
     }
     payments.value = []
+    quickPaymentToggle.value = false
+    quickPayment.value = {
+      amount: 400,
+      method: 'cash'
+    }
     sessionSummary.value = {
       startTime: '',
       endTime: '',
@@ -3248,6 +3366,25 @@ const recalculateClientBalance = async (clientId: string) => {
       }
     })
 
+    // גם לבדוק פגישות קבוצתיות שהלקוח משתתף בהן
+    const allAppointmentsQuery = query(collection(db, 'appointments'))
+    const allAppointmentsSnapshot = await getDocs(allAppointmentsQuery)
+
+    allAppointmentsSnapshot.forEach(docSnap => {
+      const apt = docSnap.data()
+      // בדיקה אם זו קבוצה והלקוח משתתף בה
+      if (apt.isGroup && apt.groupParticipants && Array.isArray(apt.groupParticipants)) {
+        const participant = apt.groupParticipants.find((p: any) => p.clientId === clientId)
+        if (participant && participant.attended) {
+          const priceForParticipant = apt.groupPrice || 0
+          const paidForParticipant = participant.payments?.reduce((sum: number, pay: any) => sum + (pay.amount || 0), 0) || 0
+          totalOwed += priceForParticipant
+          totalPaid += paidForParticipant
+          sessionsAttended++
+        }
+      }
+    })
+
     const balance = totalPaid - totalOwed
 
     await updateDoc(doc(db, 'clients', clientId), {
@@ -3255,7 +3392,7 @@ const recalculateClientBalance = async (clientId: string) => {
       totalSessions: sessionsAttended
     })
 
-    console.log(`✅ Recalculated balance for ${client.name}: owed=${totalOwed}, paid=${totalPaid}, balance=${balance}`)
+    console.log(`✅ Recalculated balance for ${client.name}: owed=${totalOwed}, paid=${totalPaid}, balance=${balance}, sessions=${sessionsAttended}`)
   } catch (error) {
     console.error('Error recalculating balance:', error)
   }

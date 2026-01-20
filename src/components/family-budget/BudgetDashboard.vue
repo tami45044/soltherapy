@@ -1,12 +1,12 @@
 <template>
   <v-container>
-    <v-row class="mb-4">
+    <v-row class="mb-3">
       <v-col cols="12">
-        <h2 class="text-h4 font-weight-bold mb-2">
-          <v-icon icon="mdi-view-dashboard" size="32" color="primary" />
+        <h2 class="text-h5 font-weight-bold mb-1">
+          <v-icon icon="mdi-view-dashboard" size="24" color="primary" />
           דשבורד תקציב משפחתי
         </h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
+        <p class="text-body-2 text-medium-emphasis">
           סקירה כללית של המצב הכלכלי שלך
         </p>
       </v-col>
@@ -44,15 +44,15 @@
       <!-- Total Income Card -->
       <v-col cols="12" md="4">
         <v-card rounded="xl" elevation="3" color="green-lighten-5">
-          <v-card-text class="pa-6">
-            <div class="d-flex justify-space-between align-center mb-4">
-              <v-icon icon="mdi-cash-plus" size="48" color="success" />
-              <v-chip color="success" variant="flat" size="large">
+          <v-card-text class="pa-4">
+            <div class="d-flex justify-space-between align-center mb-2">
+              <v-icon icon="mdi-cash-plus" size="36" color="success" />
+              <v-chip color="success" variant="flat">
                 ₪{{ totalIncome.toLocaleString() }}
               </v-chip>
             </div>
-            <div class="text-h6 font-weight-bold">סה"כ הכנסות</div>
-            <div class="text-body-2 text-medium-emphasis">{{ monthName }}</div>
+            <div class="text-subtitle-1 font-weight-bold">סה"כ הכנסות</div>
+            <div class="text-caption text-medium-emphasis">{{ monthName }}</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -60,15 +60,15 @@
       <!-- Total Expenses Card -->
       <v-col cols="12" md="4">
         <v-card rounded="xl" elevation="3" color="red-lighten-5">
-          <v-card-text class="pa-6">
-            <div class="d-flex justify-space-between align-center mb-4">
-              <v-icon icon="mdi-cash-minus" size="48" color="error" />
-              <v-chip color="error" variant="flat" size="large">
+          <v-card-text class="pa-4">
+            <div class="d-flex justify-space-between align-center mb-2">
+              <v-icon icon="mdi-cash-minus" size="36" color="error" />
+              <v-chip color="error" variant="flat">
                 ₪{{ totalExpenses.toLocaleString() }}
               </v-chip>
             </div>
-            <div class="text-h6 font-weight-bold">סה"כ הוצאות</div>
-            <div class="text-body-2 text-medium-emphasis">{{ monthName }}</div>
+            <div class="text-subtitle-1 font-weight-bold">סה"כ הוצאות</div>
+            <div class="text-caption text-medium-emphasis">{{ monthName }}</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -80,25 +80,24 @@
           elevation="3"
           :color="balance >= 0 ? 'blue-lighten-5' : 'orange-lighten-5'"
         >
-          <v-card-text class="pa-6">
-            <div class="d-flex justify-space-between align-center mb-4">
+          <v-card-text class="pa-4">
+            <div class="d-flex justify-space-between align-center mb-2">
               <v-icon
                 :icon="balance >= 0 ? 'mdi-trending-up' : 'mdi-trending-down'"
-                size="48"
+                size="36"
                 :color="balance >= 0 ? 'primary' : 'warning'"
               />
               <v-chip
                 :color="balance >= 0 ? 'primary' : 'warning'"
                 variant="flat"
-                size="large"
               >
                 ₪{{ Math.abs(balance).toLocaleString() }}
               </v-chip>
             </div>
-            <div class="text-h6 font-weight-bold">
+            <div class="text-subtitle-1 font-weight-bold">
               {{ balance >= 0 ? 'עודף' : 'גירעון' }}
             </div>
-            <div class="text-body-2 text-medium-emphasis">{{ monthName }}</div>
+            <div class="text-caption text-medium-emphasis">{{ monthName }}</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -109,10 +108,10 @@
       <!-- Expenses by Category -->
       <v-col cols="12" md="6">
         <v-card rounded="xl" elevation="2">
-          <v-card-title class="pa-5 d-flex justify-space-between align-center">
+          <v-card-title class="pa-4 d-flex justify-space-between align-center">
             <div class="d-flex align-center">
-              <v-icon icon="mdi-chart-pie" size="24" class="ml-2" />
-              <span class="text-h6">הוצאות לפי קטגוריה</span>
+              <v-icon icon="mdi-chart-pie" size="20" class="ml-2" />
+              <span class="text-subtitle-1 font-weight-bold">הוצאות לפי קטגוריה</span>
             </div>
             <v-chip color="error" variant="flat" size="small">
               סה"כ: ₪{{ totalExpenses.toLocaleString() }}
@@ -127,9 +126,9 @@
       <!-- Expenses by Payment Method -->
       <v-col cols="12" md="6">
         <v-card rounded="xl" elevation="2">
-          <v-card-title class="pa-5">
-            <v-icon icon="mdi-chart-donut" size="24" class="ml-2" />
-            <span class="text-h6">הוצאות לפי אמצעי תשלום</span>
+          <v-card-title class="pa-4">
+            <v-icon icon="mdi-chart-donut" size="20" class="ml-2" />
+            <span class="text-subtitle-1 font-weight-bold">הוצאות לפי אמצעי תשלום</span>
           </v-card-title>
           <v-card-text class="pa-4" style="min-height: 300px;">
             <canvas ref="expensesByPaymentMethodChart"></canvas>
@@ -142,9 +141,9 @@
     <v-row class="mt-4">
       <v-col cols="12">
         <v-card rounded="xl" elevation="2">
-          <v-card-title class="pa-5">
-            <v-icon icon="mdi-lightning-bolt" size="24" class="ml-2" />
-            <span class="text-h6">פעולות מהירות</span>
+          <v-card-title class="pa-4">
+            <v-icon icon="mdi-lightning-bolt" size="20" class="ml-2" />
+            <span class="text-subtitle-1 font-weight-bold">פעולות מהירות</span>
           </v-card-title>
           <v-card-text class="pa-4">
             <v-row>

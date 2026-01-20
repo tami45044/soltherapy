@@ -1,27 +1,26 @@
 <template>
   <v-container>
-    <v-row class="mb-4">
+    <v-row class="mb-3">
       <v-col cols="12">
-        <h2 class="text-h4 font-weight-bold mb-2">
-          <v-icon icon="mdi-calendar-sync" size="32" color="primary" />
+        <h2 class="text-h5 font-weight-bold mb-1">
+          <v-icon icon="mdi-calendar-sync" size="24" color="primary" />
           הוצאות קבועות
         </h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
+        <p class="text-body-2 text-medium-emphasis">
           הגדר הוצאות חוזרות חודשיות (משכנתא, ארנונה, חשמל וכו')
         </p>
       </v-col>
     </v-row>
 
     <!-- Add Button -->
-    <v-row class="mb-4">
+    <v-row class="mb-3">
       <v-col cols="12">
         <v-btn
           color="primary"
-          size="large"
           rounded="lg"
           @click="openDialog()"
         >
-          <v-icon icon="mdi-plus" start />
+          <v-icon icon="mdi-plus" start size="small" />
           הוצאה קבועה חדשה
         </v-btn>
       </v-col>

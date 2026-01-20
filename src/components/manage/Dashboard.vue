@@ -1045,15 +1045,31 @@ const stats = computed(() => {
     monthPercentage
   })
 
+  // ספירת פגישות בפועל (רק attended) - קבוצה = פגישה אחת
+  const countActualAppointments = (appts: Appointment[]) => {
+    return appts.filter(a => {
+      if (a.isGroup) {
+        // קבוצה נספרת אם לפחות משתתף אחד הגיע
+        return a.groupParticipants?.some(p => p.attended)
+      }
+      // פגישה רגילה נספרת רק אם הלקוח הגיע
+      return a.attended
+    }).length
+  }
+
+  const todayActual = countActualAppointments(todayAppts)
+  const weekActualCount = countActualAppointments(weekAppts)
+  const monthActualCount = countActualAppointments(monthAppts)
+
   const attendedCount = monthAppts.filter(a => a.attended).length
   const attendanceRate = monthAppts.length > 0
     ? Math.round((attendedCount / monthAppts.length) * 100)
     : 0
 
     return {
-    todayAppointments: todayAppts.length,
-    weekAppointments: weekAppts.length,
-    monthAppointments: monthAppts.length,
+    todayAppointments: todayActual,
+    weekAppointments: weekActualCount,
+    monthAppointments: monthActualCount,
     weekExpected,
     weekActual,
     weekPaid,
@@ -1263,6 +1279,7 @@ const showBalanceDetails = async (client: Client) => {
 
       // Check if this is a regular appointment for this client
       if (apt.clientId === client.id) {
+        // רק פגישות שהלקוח הגיע אליהן
         if (apt.attended) {
           const paidForApt = apt.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
           totalOwed += apt.price || 0
@@ -1277,23 +1294,14 @@ const showBalanceDetails = async (client: Client) => {
             attended: true,
             isGroup: false
           })
-        } else {
-          // Show non-attended appointments too
-          appointmentsList.push({
-            date: aptDate,
-            time: apt.time,
-            price: apt.price || 0,
-            paid: 0,
-            balance: 0,
-            attended: false,
-            isGroup: false
-          })
         }
+        // לא מציגים פגישות שלא הגיעו
       }
       // Check if this is a group appointment and client is a participant
       else if (apt.isGroup && apt.groupParticipants && Array.isArray(apt.groupParticipants)) {
         const participant = apt.groupParticipants.find((p: any) => p.clientId === client.id)
         if (participant) {
+          // רק אם המשתתף הגיע
           if (participant.attended) {
             const paidForParticipant = participant.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
             const priceForParticipant = apt.groupPrice || 0
@@ -1309,18 +1317,8 @@ const showBalanceDetails = async (client: Client) => {
               attended: true,
               isGroup: true
             })
-          } else {
-            // Show non-attended group appointments too
-            appointmentsList.push({
-              date: aptDate,
-              time: apt.time,
-              price: apt.groupPrice || 0,
-              paid: 0,
-              balance: 0,
-              attended: false,
-              isGroup: true
-            })
           }
+          // לא מציגים פגישות שלא הגיעו
         }
       }
     })

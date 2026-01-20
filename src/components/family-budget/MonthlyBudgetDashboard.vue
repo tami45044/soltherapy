@@ -1,12 +1,12 @@
 <template>
   <v-container>
-    <v-row class="mb-4">
+    <v-row class="mb-3">
       <v-col cols="12">
-        <h2 class="text-h4 font-weight-bold mb-2">
-          <v-icon icon="mdi-calendar-month" size="32" color="primary" />
+        <h2 class="text-h5 font-weight-bold mb-1">
+          <v-icon icon="mdi-calendar-month" size="24" color="primary" />
           סיכום חודשי מפורט
         </h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
+        <p class="text-body-2 text-medium-emphasis">
           צפה בסיכומים חודשיים עם השוואות
         </p>
       </v-col>
@@ -25,9 +25,9 @@
         lg="4"
       >
         <v-card rounded="xl" elevation="3" class="monthly-card">
-          <v-card-title class="pa-5 bg-blue-lighten-5">
+          <v-card-title class="pa-4 bg-blue-lighten-5">
             <div class="w-100 d-flex justify-space-between align-center">
-              <span class="text-h6 font-weight-bold">{{ summary.monthName }}</span>
+              <span class="text-subtitle-1 font-weight-bold">{{ summary.monthName }}</span>
               <v-chip
                 :color="summary.balance >= 0 ? 'success' : 'error'"
                 variant="flat"
@@ -38,12 +38,12 @@
             </div>
           </v-card-title>
 
-          <v-card-text class="pa-4">
+          <v-card-text class="pa-3">
             <!-- Income -->
-            <div class="d-flex justify-space-between align-center mb-3">
+            <div class="d-flex justify-space-between align-center mb-2">
               <div class="d-flex align-center">
-                <v-icon icon="mdi-cash-plus" color="success" size="24" class="ml-2" />
-                <span class="font-weight-bold">הכנסות:</span>
+                <v-icon icon="mdi-cash-plus" color="success" size="20" class="ml-2" />
+                <span class="text-body-2 font-weight-bold">הכנסות:</span>
               </div>
               <v-chip color="success" variant="tonal" size="small">
                 ₪{{ summary.totalIncome.toLocaleString() }}
@@ -51,24 +51,24 @@
             </div>
 
             <!-- Expenses -->
-            <div class="d-flex justify-space-between align-center mb-3">
+            <div class="d-flex justify-space-between align-center mb-2">
               <div class="d-flex align-center">
-                <v-icon icon="mdi-cash-minus" color="error" size="24" class="ml-2" />
-                <span class="font-weight-bold">הוצאות:</span>
+                <v-icon icon="mdi-cash-minus" color="error" size="20" class="ml-2" />
+                <span class="text-body-2 font-weight-bold">הוצאות:</span>
               </div>
               <v-chip color="error" variant="tonal" size="small">
                 ₪{{ summary.totalExpenses.toLocaleString() }}
               </v-chip>
             </div>
 
-            <v-divider class="my-3" />
+            <v-divider class="my-2" />
 
             <!-- Top 3 Expense Categories -->
-            <div class="text-subtitle-2 font-weight-bold mb-2">קטגוריות עיקריות:</div>
+            <div class="text-caption font-weight-bold mb-2">קטגוריות עיקריות:</div>
             <div
               v-for="(amount, category) in getTopCategories(summary.expensesByCategory)"
               :key="category"
-              class="d-flex justify-space-between align-center mb-1 text-body-2"
+              class="d-flex justify-space-between align-center mb-1 text-caption"
             >
               <span>{{ EXPENSE_CATEGORY_LABELS[category] }}</span>
               <span class="text-medium-emphasis">₪{{ amount.toLocaleString() }}</span>
@@ -80,7 +80,7 @@
               color="primary"
               size="small"
               rounded="lg"
-              class="mt-4"
+              class="mt-3"
               @click="viewDetails(summary.month)"
             >
               צפה בפירוט
@@ -92,9 +92,9 @@
 
     <!-- Empty State -->
     <v-card v-if="!loading && monthlySummaries.length === 0" rounded="xl" elevation="2">
-      <v-card-text class="pa-8 text-center">
-        <v-icon icon="mdi-information-outline" size="64" color="grey" />
-        <p class="text-h6 mt-4">אין נתונים חודשיים</p>
+      <v-card-text class="pa-6 text-center">
+        <v-icon icon="mdi-information-outline" size="48" color="grey" />
+        <p class="text-subtitle-1 font-weight-bold mt-3">אין נתונים חודשיים</p>
         <p class="text-body-2 text-medium-emphasis">
           התחל להוסיף הוצאות והכנסות כדי לראות סיכומים
         </p>

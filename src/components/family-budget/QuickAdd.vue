@@ -1,13 +1,13 @@
 <template>
   <v-container class="d-flex justify-center">
     <div style="max-width: 700px; width: 100%;">
-      <v-row class="mb-4">
+      <v-row class="mb-3">
         <v-col cols="12">
-          <h2 class="text-h4 font-weight-bold mb-2">
-            <v-icon icon="mdi-lightning-bolt" size="32" color="primary" />
+          <h2 class="text-h5 font-weight-bold mb-1">
+            <v-icon icon="mdi-lightning-bolt" size="24" color="primary" />
             הזנה מהירה
           </h2>
-          <p class="text-subtitle-1 text-medium-emphasis">
+          <p class="text-body-2 text-medium-emphasis">
             הוסף הוצאות והכנסות בקלות ובמהירות
           </p>
         </v-col>
@@ -24,12 +24,12 @@
           mandatory
           class="w-100"
         >
-          <v-btn value="expense" size="large" class="flex-grow-1">
-            <v-icon icon="mdi-cash-minus" start />
+          <v-btn value="expense" class="flex-grow-1">
+            <v-icon icon="mdi-cash-minus" start size="small" />
             הוצאה
           </v-btn>
-          <v-btn value="income" size="large" class="flex-grow-1">
-            <v-icon icon="mdi-cash-plus" start />
+          <v-btn value="income" class="flex-grow-1">
+            <v-icon icon="mdi-cash-plus" start size="small" />
             הכנסה
           </v-btn>
         </v-btn-toggle>
@@ -38,12 +38,12 @@
 
     <!-- Quick Add Expense Form -->
     <v-card v-if="activeType === 'expense'" rounded="xl" elevation="3" class="mb-6">
-      <v-card-title class="pa-5 bg-red-lighten-5">
-        <v-icon icon="mdi-cash-minus" size="24" color="error" class="ml-2" />
-        <span class="text-h6">הוצאה חדשה</span>
+      <v-card-title class="pa-4 bg-red-lighten-5">
+        <v-icon icon="mdi-cash-minus" size="20" color="error" class="ml-2" />
+        <span class="text-subtitle-1 font-weight-bold">הוצאה חדשה</span>
       </v-card-title>
 
-      <v-card-text class="pa-6">
+      <v-card-text class="pa-4">
         <v-form ref="expenseForm" @submit.prevent="addExpense">
           <v-row>
             <!-- Amount -->
@@ -144,12 +144,12 @@
 
     <!-- Quick Add Income Form -->
     <v-card v-if="activeType === 'income'" rounded="xl" elevation="3" class="mb-6">
-      <v-card-title class="pa-5 bg-green-lighten-5">
-        <v-icon icon="mdi-cash-plus" size="24" color="success" class="ml-2" />
-        <span class="text-h6">הכנסה חדשה</span>
+      <v-card-title class="pa-4 bg-green-lighten-5">
+        <v-icon icon="mdi-cash-plus" size="20" color="success" class="ml-2" />
+        <span class="text-subtitle-1 font-weight-bold">הכנסה חדשה</span>
       </v-card-title>
 
-      <v-card-text class="pa-6">
+      <v-card-text class="pa-4">
         <v-form ref="incomeForm" @submit.prevent="addIncome">
           <v-row>
             <!-- Amount -->

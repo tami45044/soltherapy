@@ -867,9 +867,19 @@ const loadReports = async () => {
     // Store all appointments for monthly details
     allAppointments.value = appointments
 
-    // Load debt payments
+    // Load debt payments (standalone payments that reduce debt)
     const debtPaymentsSnapshot = await getDocs(collection(db, 'debt_payments'))
     const debtPayments: DebtPayment[] = debtPaymentsSnapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        date: data.date?.toDate() || new Date(),
+        amount: data.amount || 0
+      }
+    })
+
+    // Load debt additions (manually added debts, initial debts)
+    const debtAdditionsSnapshot = await getDocs(collection(db, 'debt_additions'))
+    const debtAdditions = debtAdditionsSnapshot.docs.map(doc => {
       const data = doc.data()
       return {
         date: data.date?.toDate() || new Date(),
@@ -946,7 +956,22 @@ const loadReports = async () => {
       }
     })
 
-    // Distribute debt payments (FIFO)
+    // Add manually-added debts (debt_additions) to the month they were created
+    debtAdditions.forEach(addition => {
+      const monthKey = getMonthKey(addition.date)
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = {
+          appointments: [],
+          expectedRevenue: 0,
+          paidInMonth: 0,
+          debt: 0,
+          expenses: 0
+        }
+      }
+      monthlyData[monthKey].debt += addition.amount
+    })
+
+    // Distribute debt payments (FIFO) — covers both session debt and added debts
     distributeDebtPayments(monthlyData, debtPayments)
 
     // Create reports array

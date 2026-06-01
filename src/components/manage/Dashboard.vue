@@ -14,17 +14,6 @@
         </div>
         <div class="d-flex gap-2">
           <v-btn
-            color="primary"
-            variant="elevated"
-            rounded="lg"
-            @click="loadData"
-            :loading="loading"
-            size="large"
-          >
-            <v-icon icon="mdi-refresh" start />
-            רענן נתונים
-          </v-btn>
-          <v-btn
             v-if="isTest"
             color="primary"
             variant="tonal"
@@ -884,7 +873,7 @@ import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue'
 import { collection, getDocs, query, where, orderBy, updateDoc, doc, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
 import type { Client, Appointment, PaymentRecord, PaymentMethod } from '@/types/manage'
-import { backupFirestore } from '@/utils/backup'
+import { backupToExcel } from '@/utils/backup-excel'
 import { copyProductionToTest } from '@/utils/copy-data'
 import { importBackupFiles } from '@/utils/import-data'
 
@@ -1136,19 +1125,15 @@ const loadData = async () => {
       createdAt: doc.data().createdAt?.toDate() || new Date()
     })) as Client[]
 
-    // Load appointments from week start (to include all current week appointments)
     const now = new Date()
     const weekStart = getWeekStart(now)
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const last30Days = new Date(now)
+    last30Days.setDate(last30Days.getDate() - 30)
+    last30Days.setHours(0, 0, 0, 0)
 
-    // Use the earlier date (either week start or month start)
-    const loadFrom = weekStart < monthStart ? weekStart : monthStart
-
-    console.log('📅 Dashboard loading appointments from:', loadFrom, {
-      weekStart,
-      monthStart,
-      loadFrom
-    })
+    // Load from the earliest relevant date (30 days ago or week start, whichever is earlier)
+    const loadFrom = [weekStart, monthStart, last30Days].reduce((earliest, d) => d < earliest ? d : earliest)
 
     const q = query(
       collection(db, 'appointments'),
@@ -1205,8 +1190,8 @@ const createBackup = async () => {
 
   backingUp.value = true
   try {
-    await backupFirestore()
-    alert('✅ הגיבוי הושלם בהצלחה!\n\nהקבצים ירדו לתיקיית Downloads שלך.')
+    await backupToExcel()
+    alert('✅ הגיבוי הושלם בהצלחה!\n\nקובץ האקסל ירד לתיקיית Downloads שלך.')
   } catch (error) {
     console.error('❌ שגיאה בגיבוי:', error)
     alert('❌ שגיאה בגיבוי הנתונים')

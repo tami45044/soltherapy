@@ -16,17 +16,21 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "backup": "node scripts/backup-firestore.js",
+    "backup:email": "node scripts/email-backup.js",
     "copy-data": "node copy-production-data.js"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
     "chart.js": "^4.5.1",
     "firebase": "^12.6.0",
+    "nodemailer": "^8.0.10",
     "pinia": "^3.0.3",
+    "resend": "^6.4.2",
     "vue": "^3.5.22",
     "vue-chartjs": "^5.3.3",
     "vue-router": "^4.6.3",
-    "vuetify": "^3.10.8"
+    "vuetify": "^3.10.8",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

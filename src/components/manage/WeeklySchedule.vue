@@ -1,12 +1,22 @@
 <template>
   <v-container fluid class="schedule-container">
     <!-- Header -->
-    <v-row class="mb-4">
+    <v-row class="mb-4" align="center">
       <v-col cols="12" md="8" class="text-right">
         <h2 class="text-h4 mb-2">יומן שבועי</h2>
-        <p class="text-subtitle-1 text-medium-emphasis">
+        <p class="text-subtitle-1 text-medium-emphasis mb-2">
           שבוע {{ currentWeekDisplay }}
         </p>
+        <v-chip
+          color="primary"
+          variant="tonal"
+          size="default"
+          rounded="xl"
+          class="font-weight-bold"
+        >
+          <v-icon icon="mdi-calendar-check" start size="16" />
+          {{ weekAttendedCount }} פגישות התקיימו
+        </v-chip>
       </v-col>
       <v-col cols="12" md="4" class="text-left">
         <v-btn-group rounded="xl" elevation="2">
@@ -64,37 +74,6 @@
           <v-icon icon="mdi-calendar-plus" />
           הוסף פגישה
         </v-btn>
-      </v-col>
-    </v-row>
-
-    <!-- Admin Tools - Recalculate Balances -->
-    <v-row class="mb-4">
-      <v-col cols="12">
-        <v-card rounded="xl" variant="tonal" color="warning">
-          <v-card-text class="d-flex align-center justify-space-between">
-            <div>
-              <strong>🔧 כלי תיקון:</strong> חישוב מחדש של חובות כל הלקוחות על בסיס פגישות בפועל
-            </div>
-            <v-btn
-              color="warning"
-              rounded="xl"
-              variant="elevated"
-              @click="recalculateAllClientBalances"
-            >
-              <v-icon icon="mdi-calculator" />
-              חשב מחדש חובות
-            </v-btn>
-            <v-btn
-              color="error"
-              rounded="xl"
-              variant="elevated"
-              @click="fixZeroPriceAppointments"
-            >
-              <v-icon icon="mdi-wrench" />
-              תקן מחירים 0
-            </v-btn>
-          </v-card-text>
-        </v-card>
       </v-col>
     </v-row>
 
@@ -475,7 +454,7 @@
               </v-switch>
 
               <!-- Regular Appointment Fields -->
-              <v-select
+              <v-autocomplete
                 v-if="!appointmentForm.isGroup"
                 v-model="appointmentForm.clientId"
                 label="בחר לקוח *"
@@ -486,6 +465,7 @@
                 rounded="lg"
                 :rules="appointmentForm.isGroup ? [] : [rules.required]"
                 class="mb-4"
+                clearable
                 @update:model-value="updateClientPrice"
               >
                 <template #prepend-inner>
@@ -500,7 +480,7 @@
                     @click="showAddClientQuick = true"
                   />
                 </template>
-              </v-select>
+              </v-autocomplete>
 
               <!-- Group Appointment Fields -->
               <div v-if="appointmentForm.isGroup">
@@ -1361,30 +1341,21 @@ const hebrewDays = [
   { index: 6, name: 'יום שבת', icon: 'mdi-numeric-7-circle' }
 ]
 
-const defaultTimeSlots = ['11:00', '12:00', '14:30', '17:00', '18:00']
+// Default round-hour slots shown when the week is empty (09:00–22:00)
+const defaultRoundHours = Array.from({ length: 14 }, (_, i) => {
+  const hour = 9 + i
+  return `${String(hour).padStart(2, '0')}:00`
+})
 
-// Dynamic time slots based on appointments and template ONLY (no default empty slots)
 const timeSlots = computed(() => {
-  const slots = new Set<string>()
+  const slots = new Set<string>(defaultRoundHours)
 
-  // Add times from current week's appointments
+  // Add times from actual appointments only (template times appear naturally when week is filled)
   appointments.value.forEach(apt => {
     if (apt.time) slots.add(apt.time)
   })
 
-  // Add times from template (for current week)
-  templateSlots.value.forEach(slot => {
-    if (slot.time) {
-      // Only show if slot has clients defined
-      const hasClients = (slot.defaultClientIds && slot.defaultClientIds.length > 0)
-        || (slot as any).defaultClientId
-      if (hasClients) {
-        slots.add(slot.time)
-      }
-    }
-  })
-
-  // Sort times
+  // Sort chronologically
   return Array.from(slots).sort()
 })
 
@@ -1451,6 +1422,10 @@ const isWeekFilledFromTemplate = computed(() => {
 
 const canFillWeek = computed(() => {
   return hasTemplate.value && !isWeekFilledFromTemplate.value
+})
+
+const weekAttendedCount = computed(() => {
+  return appointments.value.filter(a => a.attended).length
 })
 
 const totalPaid = computed(() => {
@@ -1553,7 +1528,7 @@ const handleQuickPaymentToggle = (value: boolean) => {
     // מפעילים את המתג - מוסיפים תשלום חדש
     quickPayment.value.amount = appointmentForm.value.price
     quickPayment.value.method = 'cash'
-    
+
     // מוסיפים את התשלום לרשימת התשלומים
     const newQuickPayment = {
       id: `quick_payment_${Date.now()}`,
@@ -1941,31 +1916,10 @@ const getAppointment = (date: Date, time: string): Appointment | undefined => {
   })
 }
 
-// חישוב מספר פגישה דינמי לפי כל הפגישות שנקבעו עד תאריך זה
+// Returns the stored session number (calculated at save time from full Firebase history)
 const getDisplaySessionNumber = (appointment: Appointment | undefined): number => {
-  if (!appointment || !appointment.clientId) return 1
-
-  // Count ALL appointments for this client BEFORE OR AT this date/time
-  const appointmentsBefore = appointments.value.filter(apt => {
-    // Skip if not the same client
-    if (apt.clientId !== appointment.clientId) return false
-
-    // Skip if it's the exact same appointment
-    if (apt.id === appointment.id) return false
-
-    const aptDate = apt.date instanceof Date ? apt.date : new Date(apt.date)
-    const currentDate = appointment.date instanceof Date ? appointment.date : new Date(appointment.date)
-
-    // Include appointments before this date
-    if (aptDate < currentDate) return true
-
-    // For same date, include only earlier times
-    if (isSameDay(aptDate, currentDate) && apt.time < appointment.time) return true
-
-    return false
-  }).length
-
-  return appointmentsBefore + 1
+  if (!appointment) return 1
+  return appointment.sessionNumber || 1
 }
 
 const getTemplateSlotsForDay = (dayIndex: number): ScheduleSlot[] => {
@@ -2519,131 +2473,6 @@ const updateWeeklyTargetFromAppointments = async () => {
   }
 }
 
-const recalculateAllClientBalances = async () => {
-  if (!confirm('🔄 לחשב מחדש את כל החובות?\n\nזה יחשב מחדש את החוב של כל לקוח על בסיס הפגישות בפועל.\n\nהאם להמשיך?')) {
-    return
-  }
-
-  try {
-    console.log('🔄 מתחיל חישוב מחדש של חובות...')
-
-    // Get all appointments
-    const allAppointmentsQuery = query(collection(db, 'appointments'))
-    const allAppointmentsSnap = await getDocs(allAppointmentsQuery)
-
-    // Calculate balance for each client
-    const clientBalances: Record<string, { balance: number, sessions: number }> = {}
-
-    allAppointmentsSnap.forEach(docSnap => {
-      const apt = docSnap.data()
-
-      // Regular appointment
-      if (apt.clientId && apt.clientId !== 'group' && apt.attended) {
-        if (!clientBalances[apt.clientId]) {
-          clientBalances[apt.clientId] = { balance: 0, sessions: 0 }
-        }
-
-        const paid = apt.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
-        const price = apt.price || 0
-        clientBalances[apt.clientId].balance += (paid - price)
-        clientBalances[apt.clientId].sessions += 1
-      }
-
-      // Group appointment participants
-      if (apt.isGroup && apt.groupParticipants && Array.isArray(apt.groupParticipants)) {
-        apt.groupParticipants.forEach((p: any) => {
-          if (p.attended) {
-            if (!clientBalances[p.clientId]) {
-              clientBalances[p.clientId] = { balance: 0, sessions: 0 }
-            }
-
-            const paid = p.payments?.reduce((sum: number, pay: any) => sum + (pay.amount || 0), 0) || 0
-            const price = apt.groupPrice || 0
-            clientBalances[p.clientId].balance += (paid - price)
-            clientBalances[p.clientId].sessions += 1
-          }
-        })
-      }
-    })
-
-    // Update all clients
-    const updatePromises = Object.entries(clientBalances).map(([clientId, data]) => {
-      console.log(`  ✅ ${clientId}: balance=${data.balance}, sessions=${data.sessions}`)
-      return updateDoc(doc(db, 'clients', clientId), {
-        balance: data.balance,
-        totalSessions: data.sessions
-      })
-    })
-
-    // Also reset clients with no appointments to 0
-    const clientsWithNoAppointments = clients.value.filter(c => !clientBalances[c.id])
-    clientsWithNoAppointments.forEach(c => {
-      if (c.balance !== 0 || c.totalSessions !== 0) {
-        console.log(`  🔄 ${c.name}: resetting to 0`)
-        updatePromises.push(updateDoc(doc(db, 'clients', c.id), {
-          balance: 0,
-          totalSessions: 0
-        }))
-      }
-    })
-
-    await Promise.all(updatePromises)
-    await loadClients()
-
-    showSnackbar(`✅ חושב מחדש! עודכנו ${Object.keys(clientBalances).length} לקוחות`, 'success')
-    console.log('✅ חישוב מחדש הושלם!')
-  } catch (error) {
-    console.error('❌ שגיאה בחישוב מחדש:', error)
-    showSnackbar('שגיאה בחישוב מחדש', 'error')
-  }
-}
-
-const fixZeroPriceAppointments = async () => {
-  if (!confirm('🔧 לתקן פגישות עם מחיר 0?\n\nזה יעדכן את כל הפגישות עם מחיר 0 למחיר ברירת המחדל של הלקוח (או 400 ₪).\n\nהאם להמשיך?')) {
-    return
-  }
-
-  try {
-    console.log('🔧 מתחיל תיקון פגישות עם מחיר 0...')
-
-    // Get all appointments with price = 0
-    const allAppointmentsQuery = query(
-      collection(db, 'appointments'),
-      where('price', '==', 0)
-    )
-    const allAppointmentsSnap = await getDocs(allAppointmentsQuery)
-
-    console.log(`📋 נמצאו ${allAppointmentsSnap.size} פגישות עם מחיר 0`)
-
-    let fixedCount = 0
-    const updatePromises: Promise<any>[] = []
-
-    allAppointmentsSnap.forEach(docSnap => {
-      const apt = docSnap.data()
-      const client = clients.value.find(c => c.id === apt.clientId)
-      const correctPrice = client?.defaultPrice || 400
-
-      console.log(`  🔧 ${apt.clientName}: 0 → ${correctPrice}`)
-
-      updatePromises.push(
-        updateDoc(doc(db, 'appointments', docSnap.id), {
-          price: correctPrice
-        })
-      )
-      fixedCount++
-    })
-
-    await Promise.all(updatePromises)
-    await loadAppointments()
-
-    showSnackbar(`✅ תוקנו ${fixedCount} פגישות!`, 'success')
-    console.log('✅ תיקון הושלם!')
-  } catch (error) {
-    console.error('❌ שגיאה בתיקון:', error)
-    showSnackbar('שגיאה בתיקון פגישות', 'error')
-  }
-}
-
 const openAppointmentDialog = (date: Date, time: string) => {
   const existing = getAppointment(date, time)
 
@@ -2967,16 +2796,18 @@ const saveGroupSession = async () => {
   try {
     const appointmentRef = doc(db, 'appointments', selectedAppointment.value.id)
 
-    // Get old appointment data to compare
+    // Read fresh data from Firestore to avoid stale state
     const oldAppointmentSnap = await getDoc(appointmentRef)
     const oldAppointment = oldAppointmentSnap.data()
     const oldParticipants = oldAppointment?.groupParticipants || []
+    const oldGroupPrice: number = oldAppointment?.groupPrice || 0
+    const newGroupPrice: number = groupForm.value.groupPrice
 
     // Calculate total expected income (only from attended participants)
     const attendedParticipants = groupParticipants.value.filter(p => p.attended)
-    const totalExpectedIncome = attendedParticipants.length * groupForm.value.groupPrice
+    const totalExpectedIncome = attendedParticipants.length * newGroupPrice
 
-    // Update appointment - ensure all dates are valid
+    // Update appointment
     await updateDoc(appointmentRef, {
       groupParticipants: groupParticipants.value.map(p => ({
         clientId: p.clientId,
@@ -2993,11 +2824,12 @@ const saveGroupSession = async () => {
         })),
         isRegular: p.isRegular
       })),
+      groupPrice: newGroupPrice,
       price: totalExpectedIncome,
       attended: attendedParticipants.length > 0
     })
 
-    // Update client balances - track changes in attendance
+    // Update client balances
     for (const participant of groupParticipants.value) {
       const client = clients.value.find(c => c.id === participant.clientId)
       if (!client) continue
@@ -3005,38 +2837,40 @@ const saveGroupSession = async () => {
       const oldParticipant = oldParticipants.find((p: any) => p.clientId === participant.clientId)
       const wasAttended = oldParticipant?.attended || false
       const isNowAttended = participant.attended
-
       const clientRef = doc(db, 'clients', participant.clientId)
 
-      // Case 1: Participant just marked as attended
+      // Case 1: Just marked as attended for the first time
       if (!wasAttended && isNowAttended) {
         const totalPaid = participant.payments.reduce((sum, p) => sum + p.amount, 0)
-        const balanceChange = totalPaid - groupForm.value.groupPrice
+        const balanceChange = totalPaid - newGroupPrice
 
         await updateDoc(clientRef, {
           balance: (client.balance || 0) + balanceChange,
           totalSessions: (client.totalSessions || 0) + 1
         })
       }
-      // Case 2: Participant was attended but now unmarked
+      // Case 2: Was attended but now unmarked — reverse using the OLD price that was applied
       else if (wasAttended && !isNowAttended) {
         const oldTotalPaid = oldParticipant.payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
-        const oldBalanceChange = oldTotalPaid - groupForm.value.groupPrice
+        const oldBalanceChange = oldTotalPaid - oldGroupPrice
 
         await updateDoc(clientRef, {
           balance: (client.balance || 0) - oldBalanceChange,
           totalSessions: Math.max(0, (client.totalSessions || 0) - 1)
         })
       }
-      // Case 3: Still attended - only update if payments changed
+      // Case 3: Still attended — recalculate difference (handles both payment and price changes)
       else if (wasAttended && isNowAttended) {
         const oldTotalPaid = oldParticipant.payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0
         const newTotalPaid = participant.payments.reduce((sum, p) => sum + p.amount, 0)
-        const paymentDifference = newTotalPaid - oldTotalPaid
 
-        if (paymentDifference !== 0) {
+        const oldBalanceChange = oldTotalPaid - oldGroupPrice
+        const newBalanceChange = newTotalPaid - newGroupPrice
+        const difference = newBalanceChange - oldBalanceChange
+
+        if (difference !== 0) {
           await updateDoc(clientRef, {
-            balance: (client.balance || 0) + paymentDifference
+            balance: (client.balance || 0) + difference
           })
         }
       }
@@ -3060,10 +2894,32 @@ const confirmDeleteGroupSession = async () => {
   if (!confirm('האם אתה בטוח שברצונך למחוק את הקבוצה?')) return
 
   try {
-    await deleteDoc(doc(db, 'appointments', selectedAppointment.value.id))
+    const appointment = selectedAppointment.value
+    const groupPrice: number = appointment.groupPrice || 0
+
+    // Reverse balance impact for every participant who attended
+    if (appointment.groupParticipants && Array.isArray(appointment.groupParticipants)) {
+      for (const participant of appointment.groupParticipants) {
+        if (!participant.attended) continue
+
+        const client = clients.value.find(c => c.id === participant.clientId)
+        if (!client) continue
+
+        const totalPaid = participant.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0
+        const balanceChange = totalPaid - groupPrice
+
+        await updateDoc(doc(db, 'clients', participant.clientId), {
+          balance: (client.balance || 0) - balanceChange,
+          totalSessions: Math.max(0, (client.totalSessions || 0) - 1)
+        })
+      }
+    }
+
+    await deleteDoc(doc(db, 'appointments', appointment.id))
     showSnackbar('הקבוצה נמחקה בהצלחה', 'success')
     closeGroupDialog()
     await loadAppointments()
+    await loadClients()
     await updateWeeklyTargetFromAppointments()
   } catch (error) {
     console.error('Error deleting group session:', error)
